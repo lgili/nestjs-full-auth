@@ -3,8 +3,8 @@ import { User as PersistenceUser } from '@prisma/client';
 import { classToPlain, instanceToPlain, plainToClass, plainToInstance } from 'class-transformer';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import { IUserRepository } from 'src/modules/auth/i-user.repository';
-import { UserEntity } from 'src/modules/auth/model/user.entity';
-import { UserSerializer } from '../../model/user.serializer';
+import { UserEntity } from 'src/modules/auth/entity/user.entity';
+import { UserSerializer } from '../../serializer/user.serializer';
 
 
 
@@ -13,7 +13,7 @@ export class UserPrismaRepository implements IUserRepository {
   private readonly logger = new Logger(UserPrismaRepository.name);
   constructor(private readonly prismaService: PrismaService) {}
 
-  async findById(id: string): Promise<UserSerializer> {
+  async findById(id: string): Promise<UserEntity> {
     const user = await this.prismaService.user.findUnique({
       where: {
         id,
@@ -27,7 +27,7 @@ export class UserPrismaRepository implements IUserRepository {
     return this.toDomain(user);
   }
 
-  async findByEmail(email: string): Promise<UserSerializer> {
+  async findByEmail(email: string): Promise<UserEntity> {
     const user = await this.prismaService.user.findUnique({
       where: {
         email,
@@ -41,7 +41,7 @@ export class UserPrismaRepository implements IUserRepository {
     return this.toDomain(user);
   }
 
-  async findAll(): Promise<UserSerializer[]> {
+  async findAll(): Promise<UserEntity[]> {
     const users = await this.prismaService.user.findMany();
 
     if (!users) {
@@ -51,7 +51,7 @@ export class UserPrismaRepository implements IUserRepository {
     return this.transformMany(users);
   }
 
-  async create(user: UserEntity): Promise<UserSerializer> {
+  async create(user: UserEntity): Promise<UserEntity> {
     try {
       const data = this.toPersistence(user);
       const userSaved = await this.prismaService.user.create(
@@ -65,7 +65,7 @@ export class UserPrismaRepository implements IUserRepository {
     }
   }
 
-  async update(user: UserEntity): Promise<UserSerializer> {
+  async update(user: UserEntity): Promise<UserEntity> {
     const data = this.toPersistence(user);
     delete data.id;
     const userUpdated = await this.prismaService.user.update({
@@ -87,9 +87,9 @@ export class UserPrismaRepository implements IUserRepository {
    * @param model
    * @param transformOption
    */
-  toDomain(model: PersistenceUser, transformOption = {}): UserSerializer {
+  toDomain(model: PersistenceUser, transformOption = {}): UserEntity {
     return plainToInstance(
-      UserSerializer,
+      UserEntity,
       instanceToPlain(model, transformOption),
       transformOption
     );
@@ -101,7 +101,7 @@ export class UserPrismaRepository implements IUserRepository {
    * @param models
    * @param transformOption
    */
-  transformMany(models: PersistenceUser[], transformOption = {}): UserSerializer[] {
+  transformMany(models: PersistenceUser[], transformOption = {}): UserEntity[] {
     return models.map((model) => this.toDomain(model, transformOption));
   }
 

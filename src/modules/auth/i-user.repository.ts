@@ -1,12 +1,12 @@
-import { UserEntity } from "./model/user.entity";
-import { UserSerializer } from "./model/user.serializer";
+import { UserEntity } from "./entity/user.entity";
+
 
 
 export abstract class IUserRepository {
-  abstract findById: (id: string) => Promise<UserSerializer>;
-  abstract findByEmail: (email: string) => Promise<UserSerializer>;
-  abstract findAll: () => Promise<UserSerializer[]>;
-  abstract update: (user: UserEntity) => Promise<UserSerializer>;
-  abstract create: (user: UserEntity) => Promise<UserSerializer>;
+  abstract findById: (id: string) => Promise<UserEntity>;
+  abstract findByEmail: (email: string) => Promise<UserEntity>;
+  abstract findAll: () => Promise<UserEntity[]>;
+  abstract update: (user: UserEntity) => Promise<UserEntity>;
+  abstract create: (user: UserEntity) => Promise<UserEntity>;
   abstract delete: (id: string) => Promise<void>;
 }

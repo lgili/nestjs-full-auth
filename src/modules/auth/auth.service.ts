@@ -11,7 +11,7 @@ import { existsSync, unlinkSync } from 'fs';
 
 
 import { UserSearchFilterDto } from 'src/modules/auth/dto/user-search-filter.dto';
-import { UserEntity } from 'src/modules/auth/model/user.entity';
+import { UserEntity } from 'src/modules/auth/entity/user.entity';
 
 import { ExceptionTitleList } from 'src/common/constants/exception-title-list.constants';
 import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
@@ -23,10 +23,11 @@ import { UnauthorizedException } from 'src/exception/unauthorized.exception';
 import { IUserRepository } from 'src/modules/auth/i-user.repository';
 import { UserStatusEnum } from 'src/modules/auth/user-status.enum';
 
-import { Pagination } from 'src/paginate';
+import { Pagination } from 'src/modules/paginate';
 import { CreateUserDto } from './dto/create-user.dto';
 import { RegisterUserDto } from './dto/register-user.dto';
-import { UserSerializer } from './model/user.serializer';
+import { UserSerializer } from './serializer/user.serializer';
+import { instanceToPlain, plainToInstance } from 'class-transformer';
 
 
 const throttleConfig = config.get('throttle.login');
@@ -52,7 +53,7 @@ export class AuthService {
     console.log(user)
     const userSaved = await this.userRepository.create(user);    
     console.log(userSaved)
-    return user;
+    return this.transform(userSaved);
   }
 
  
@@ -60,25 +61,51 @@ export class AuthService {
    * get user profile
    * @param user
    */
-  // async get(user: UserEntity): Promise<User> {
-  //   return this.userRepository.transform(user, {
-  //     groups: ownerUserGroupsForSerializing
-  //   });
-  // }
+  async get(user: UserEntity): Promise<UserSerializer> {
+    // return this.userRepository.transform(user, {
+    //   groups: ownerUserGroupsForSerializing
+    // });
+    const userSaved = await this.userRepository.findById(user.id);
+    return this.transform(userSaved)
+  }
 
   /**
    * Get user By Id
    * @param id
    */
-  // async findById(id: number): Promise<User> {
-  //   return this.userRepository.get(id, ['role'], {
-  //     groups: [
-  //       ...adminUserGroupsForSerializing,
-  //       ...ownerUserGroupsForSerializing
-  //     ]
-  //   });
-  // }
+  async findById(id: string): Promise<UserSerializer> {
+    // return this.userRepository.get(id, ['role'], {
+    //   groups: [
+    //     ...adminUserGroupsForSerializing,
+    //     ...ownerUserGroupsForSerializing
+    //   ]
+    // });
+    const userSaved = await this.userRepository.findById(id);
+    return this.transform(userSaved)
+  }
 
-
+    /**
+   * transform role entity
+   * @param model
+   * @param transformOption
+   */
+    transform(model: UserEntity, transformOption = {}): UserSerializer {
+      return plainToInstance(
+        UserSerializer,
+        instanceToPlain(model, transformOption),
+        transformOption
+      );
+    }
+  
+    
+    
+    /**
+     * transform many roles collection
+     * @param models
+     * @param transformOption
+     */
+    transformMany(models: UserEntity[], transformOption = {}): UserSerializer[] {
+      return models.map((model) => this.transform(model, transformOption));
+    }
 
 }

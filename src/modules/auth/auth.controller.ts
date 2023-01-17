@@ -26,13 +26,13 @@ import { CreateUserDto } from 'src/modules/auth/dto/create-user.dto';
 import { RegisterUserDto } from 'src/modules/auth/dto/register-user.dto';
 import { UpdateUserDto } from 'src/modules/auth/dto/update-user.dto';
 import { UserSearchFilterDto } from 'src/modules/auth/dto/user-search-filter.dto';
-import { UserEntity } from 'src/modules/auth/model/user.entity';
+import { UserEntity } from 'src/modules/auth/entity/user.entity';
 
 import { GetUser } from 'src/common/decorators/get-user.decorator';
 import { multerOptionsHelper } from 'src/common/helper/multer-options.helper';
-import { Pagination } from 'src/paginate';
-import { UserSerializer } from './model/user.serializer';
-;
+import { Pagination } from 'src/modules/paginate';
+import { UserSerializer } from './serializer/user.serializer';
+
 
 @ApiTags('user')
 @Controller()
