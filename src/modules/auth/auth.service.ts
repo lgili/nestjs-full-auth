@@ -31,12 +31,17 @@ import { UserSerializer } from './serializer/user.serializer';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { MailService } from '../mail/mail.service';
 import { RefreshTokenService } from '../refresh-token/refresh-token.service';
+import { MailJobInterface } from '../mail/interface/mail-job.interface';
 
 
 const throttleConfig = config.get('throttle.login');
 const jwtConfig = config.get('jwt');
 const appConfig = config.get('app');
 
+const isSameSite =
+  appConfig.sameSite !== null
+    ? appConfig.sameSite
+    : process.env.IS_SAME_SITE === 'true';
 const BASE_OPTIONS: SignOptions = {
   issuer: appConfig.appUrl,
   audience: appConfig.frontendUrl
@@ -111,6 +116,85 @@ export class AuthService {
       ...opts,
       isTwoFAAuthenticated
     });
+  }
+
+  /**
+   * build response payload
+   * @param accessToken
+   * @param refreshToken
+   */
+  buildResponsePayload(accessToken: string, refreshToken?: string): string[] {
+    let tokenCookies = [
+      `Authentication=${accessToken}; HttpOnly; Path=/; ${
+        !isSameSite ? 'SameSite=None; Secure;' : ''
+      } Max-Age=${jwtConfig.cookieExpiresIn}`
+    ];
+    if (refreshToken) {
+      const expiration = new Date();
+      expiration.setSeconds(expiration.getSeconds() + jwtConfig.expiresIn);
+      tokenCookies = tokenCookies.concat([
+        `Refresh=${refreshToken}; HttpOnly; Path=/; ${
+          !isSameSite ? 'SameSite=None; Secure;' : ''
+        } Max-Age=${jwtConfig.cookieExpiresIn}`,
+        `ExpiresIn=${expiration}; Path=/; ${
+          !isSameSite ? 'SameSite=None; Secure;' : ''
+        } Max-Age=${jwtConfig.cookieExpiresIn}`
+      ]);
+    }
+    return tokenCookies;
+  }
+
+
+  /**
+   * set two factor auth secret for user
+   * @param secret
+   * @param userId
+   **/
+  async setTwoFactorAuthenticationSecret(secret: string, userId: string) {
+    // add one minute throttle to generate next two factor token
+    const twoFAThrottleTime = new Date();
+    twoFAThrottleTime.setSeconds(twoFAThrottleTime.getSeconds() + 60);
+    const user = await this.userRepository.findById(userId);
+    user.twoFASecret = secret;
+    user.twoFAThrottleTime = twoFAThrottleTime;
+    return this.userRepository.update(user);
+  }
+
+  /**
+   * Turn two factor authentication for user
+   * @param user
+   * @param isTwoFAEnabled
+   * @param qrDataUri
+   **/
+  async turnOnTwoFactorAuthentication(
+    user: UserEntity,
+    isTwoFAEnabled = true,
+    qrDataUri: string
+  ) {
+    if (isTwoFAEnabled) {
+      const subject = 'Activate Two Factor Authentication';
+      const mailData: MailJobInterface = {
+        to: user.email,
+        subject,
+        slug: 'two-factor-authentication',
+        context: {
+          email: user.email,
+          qrcode: 'cid:2fa-qrcode',
+          username: user.username,
+          subject
+        },
+        attachments: [
+          {
+            filename: '2fa-qrcode.png',
+            path: qrDataUri,
+            cid: '2fa-qrcode'
+          }
+        ]
+      };
+      await this.mailService.sendMail(mailData, 'system-mail');
+    }
+    user.isTwoFAEnabled = isTwoFAEnabled;
+    return this.userRepository.update(user);
   }
 
     /**
