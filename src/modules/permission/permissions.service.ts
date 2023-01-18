@@ -33,8 +33,9 @@ export class PermissionsService
    * @param createPermissionDto
    */
   async create(createPermissionDto: CreatePermissionDto): Promise<PermissionSerializer> {
-    const serializer = new PermissionEntity(createPermissionDto)
-    const permission = await this.permissionRepository.create(serializer)
+    const perEntity = new PermissionEntity(createPermissionDto)
+    perEntity.isDefault =  true;
+    const permission = await this.permissionRepository.create(perEntity)
     return this.transform(permission);    
   }
 

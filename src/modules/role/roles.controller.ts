@@ -23,7 +23,7 @@ import { PermissionGuard } from 'src/common/guard/permission.guard';
 import JwtTwoFactorGuard from 'src/common/guard/jwt-two-factor.guard';
 
 @ApiTags('roles')
-@UseGuards(JwtTwoFactorGuard, PermissionGuard)
+// @UseGuards(JwtTwoFactorGuard, PermissionGuard)
 @Controller('roles')
 @ApiBearerAuth()
 export class RolesController {

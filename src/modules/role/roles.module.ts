@@ -3,8 +3,8 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from 'src/modules/auth/auth.module';
 // import { UniqueValidatorPipe } from 'src/common/pipes/unique-validator.pipe';
 import { PermissionsModule } from 'src/modules/permission/permissions.module';
-import { RolesController } from 'src/modules/role/roles.controller';
-import { RolesService } from 'src/modules/role/roles.service';
+import { EmailTemplateController } from 'src/modules/email-template/email-template.controller';
+import { EmailTemplateService } from 'src/modules/email-template/email-template.service';
 import { DatabaseModule } from './database/database.module';
 
 @Module({
@@ -14,7 +14,7 @@ import { DatabaseModule } from './database/database.module';
     PermissionsModule
   ],
   exports: [],
-  controllers: [RolesController],
-  providers: [RolesService/*, UniqueValidatorPipe*/]
+  controllers: [EmailTemplateController],
+  providers: [EmailTemplateService/*, UniqueValidatorPipe*/]
 })
-export class RolesModule {}
+export class EmailTemplatesModule {}

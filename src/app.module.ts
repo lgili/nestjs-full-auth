@@ -24,6 +24,8 @@ import { AppController } from 'src/app.controller';
 import winstonConfig from 'src/config/winston';
 import { InfraModule } from './infra/infra.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { PermissionsModule } from './modules/permission/permissions.module';
+import { EmailTemplateModule } from './modules/email-template/email-template.module';
 
 const appConfig = config.get('app');
 
@@ -31,6 +33,8 @@ const appConfig = config.get('app');
   imports: [
     InfraModule,
     AuthModule,
+    PermissionsModule,
+    EmailTemplateModule,
     WinstonModule.forRoot(winstonConfig),
     ThrottlerModule.forRootAsync({
       useFactory: () => throttleConfig

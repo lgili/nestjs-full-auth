@@ -59,3 +59,16 @@ model PermissionsOnRoles {
 
   @@id([roleId, permissionId])
 }
+
+model EmailTemplate {
+  id String @id @default(uuid())
+
+  title String @unique
+  slug String  @unique
+  sender String  
+  subject String 
+  body String 
+  isDefault Boolean
+
+  @@map("emailsTemplate")
+}
