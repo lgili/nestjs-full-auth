@@ -10,7 +10,12 @@ db:
   password: 'root'
   synchronize: false
 
-
+jwt:
+  # expiresIn: 10
+  expiresIn: 900
+  refreshExpiresIn: 604800
+  cookieExpiresIn: 604800
+  
 app:
   fallbackLanguage: 'en'
   name: 'Nestjs Boilerplate'

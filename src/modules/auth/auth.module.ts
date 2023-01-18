@@ -1,15 +1,20 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
 
 import * as config from 'config';
 import * as Redis from 'ioredis';
 
 import { AuthController } from 'src/modules/auth/auth.controller';
 import { AuthService } from 'src/modules/auth/auth.service';
+import { MailModule } from '../mail/mail.module';
+import { RefreshTokenModule } from '../refresh-token/refresh-token.module';
 import { DatabaseModule } from './database/database.module';
 
 
 const throttleConfig = config.get('throttle.login');
 const redisConfig = config.get('queue');
+const jwtConfig = config.get('jwt');
 
 // const LoginThrottleFactory = {
 //   provide: 'LOGIN_THROTTLE',
@@ -33,14 +38,30 @@ const redisConfig = config.get('queue');
 
 @Module({
   imports: [    
-    DatabaseModule.register(process.env.REPOSITORY_TYPE)
+    JwtModule.registerAsync({
+      useFactory: () => ({
+        secret: process.env.JWT_SECRET || jwtConfig.secret,
+        signOptions: {
+          expiresIn: process.env.JWT_EXPIRES_IN || jwtConfig.expiresIn
+        }
+      })
+    }),
+    PassportModule.register({
+      defaultStrategy: 'jwt'
+    }),
+    DatabaseModule.register(process.env.REPOSITORY_TYPE),
+    MailModule,
+    RefreshTokenModule
   ],
   controllers: [AuthController],
   providers: [
-    AuthService,    
+    AuthService, 
+    // JwtTwoFactorStrategy,
+    // JwtStrategy,   
   ],
   exports: [
-    AuthService,    
+    AuthService, 
+    JwtModule,   
   ]
 })
 export class AuthModule {}

@@ -72,3 +72,16 @@ model EmailTemplate {
 
   @@map("emailsTemplate")
 }
+
+model RefreshToken {
+  id String @id @default(uuid())
+  userId String 
+  ip String  
+  userAgent String  
+  browser String? 
+  os String?  
+  isRevoked Boolean  
+  expires DateTime
+
+  @@map("tokens")
+}

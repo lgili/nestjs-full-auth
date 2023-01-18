@@ -27,6 +27,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { PermissionsModule } from './modules/permission/permissions.module';
 import { EmailTemplateModule } from './modules/email-template/email-template.module';
 import { MailModule } from './modules/mail/mail.module';
+import { RefreshTokenModule } from './modules/refresh-token/refresh-token.module';
 
 const appConfig = config.get('app');
 
@@ -37,6 +38,7 @@ const appConfig = config.get('app');
     PermissionsModule,
     EmailTemplateModule,
     MailModule,
+    RefreshTokenModule,
     WinstonModule.forRoot(winstonConfig),
     ThrottlerModule.forRootAsync({
       useFactory: () => throttleConfig
