@@ -12,6 +12,7 @@ db:
 
 jwt:
   # expiresIn: 10
+  secret: 'example@123'
   expiresIn: 900
   refreshExpiresIn: 604800
   cookieExpiresIn: 604800

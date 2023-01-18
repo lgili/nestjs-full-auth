@@ -7,6 +7,7 @@ import * as config from 'config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import {
+  AcceptLanguageResolver,
   CookieResolver,
   HeaderResolver,
   I18nJsonParser,
@@ -34,39 +35,41 @@ const appConfig = config.get('app');
 
 @Module({
   imports: [
+    
+    WinstonModule.forRoot(winstonConfig),
+    ThrottlerModule.forRootAsync({
+      useFactory: () => throttleConfig
+    }),    
+    I18nModule.forRootAsync({
+      useFactory: () => ({
+        fallbackLanguage: appConfig.fallbackLanguage,
+        parserOptions: {
+          path: path.join(__dirname, '../i18n/'),
+          watch: true
+        }
+      }),
+      parser: I18nJsonParser,
+      resolvers: [
+        {
+          use: QueryResolver,
+          options: ['lang', 'locale', 'l']
+        },
+        new HeaderResolver(['x-custom-lang']),
+        new CookieResolver(['lang', 'locale', 'l']),
+        AcceptLanguageResolver,
+      ]
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'),
+      exclude: ['/api*']
+    }),
     InfraModule,
     AuthModule,
     PermissionsModule,
     EmailTemplateModule,
     MailModule,
     RefreshTokenModule,
-    TwofaModule,
-    WinstonModule.forRoot(winstonConfig),
-    ThrottlerModule.forRootAsync({
-      useFactory: () => throttleConfig
-    }),    
-    // I18nModule.forRootAsync({
-    //   useFactory: () => ({
-    //     fallbackLanguage: appConfig.fallbackLanguage,
-    //     parserOptions: {
-    //       path: path.join(__dirname, '/i18n/'),
-    //       watch: true
-    //     }
-    //   }),
-    //   parser: I18nJsonParser,
-    //   resolvers: [
-    //     {
-    //       use: QueryResolver,
-    //       options: ['lang', 'locale', 'l']
-    //     },
-    //     new HeaderResolver(['x-custom-lang']),
-    //     new CookieResolver(['lang', 'locale', 'l'])
-    //   ]
-    // }),
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'public'),
-      exclude: ['/api*']
-    }),
+    TwofaModule
     
   ],
   providers: [
@@ -78,10 +81,10 @@ const appConfig = config.get('app');
       provide: APP_GUARD,
       useClass: CustomThrottlerGuard
     },
-    // {
-    //   provide: APP_FILTER,
-    //   useClass: I18nExceptionFilterPipe
-    // }
+    {
+      provide: APP_FILTER,
+      useClass: I18nExceptionFilterPipe
+    }
   ],
   controllers: [AppController]
 })

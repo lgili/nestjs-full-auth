@@ -1,43 +1,47 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 
+import { JwtModule } from '@nestjs/jwt';
+import  Redis from 'ioredis';
 import * as config from 'config';
-import * as Redis from 'ioredis';
 
 import { AuthController } from 'src/modules/auth/auth.controller';
 import { AuthService } from 'src/modules/auth/auth.service';
-import { MailModule } from '../mail/mail.module';
-import { RefreshTokenModule } from '../refresh-token/refresh-token.module';
+// import { UserRepository } from 'src/modules/auth/user.repository';
+// import { UniqueValidatorPipe } from 'src/common/pipes/unique-validator.pipe';
+import { MailModule } from 'src/modules/mail/mail.module';
+import { RateLimiterRedis } from 'rate-limiter-flexible';
+import { RefreshTokenModule } from 'src/modules/refresh-token/refresh-token.module';
+import { JwtTwoFactorStrategy } from 'src/common/strategy/jwt-two-factor.strategy';
+import { JwtStrategy } from 'src/common/strategy/jwt.strategy';
 import { DatabaseModule } from './database/database.module';
-
 
 const throttleConfig = config.get('throttle.login');
 const redisConfig = config.get('queue');
 const jwtConfig = config.get('jwt');
+const LoginThrottleFactory = {
+  provide: 'LOGIN_THROTTLE',
+  useFactory: () => {
+    const redisClient = new Redis({
+      enableOfflineQueue: false,
+      host: process.env.REDIS_HOST || redisConfig.host,
+      port: process.env.REDIS_PORT || redisConfig.port,
+      password: process.env.REDIS_PASSWORD || redisConfig.password
+    });
+    
 
-// const LoginThrottleFactory = {
-//   provide: 'LOGIN_THROTTLE',
-//   useFactory: () => {
-//     const redisClient = new Redis({
-//       enableOfflineQueue: false,
-//       host: process.env.REDIS_HOST || redisConfig.host,
-//       port: process.env.REDIS_PORT || redisConfig.port,
-//       password: process.env.REDIS_PASSWORD || redisConfig.password
-//     });
-
-//     return new RateLimiterRedis({
-//       storeClient: redisClient,
-//       keyPrefix: throttleConfig.prefix,
-//       points: throttleConfig.limit,
-//       duration: 60 * 60 * 24 * 30, // Store number for 30 days since first fail
-//       blockDuration: throttleConfig.blockDuration
-//     });
-//   }
-// };
+    return new RateLimiterRedis({
+      storeClient: redisClient,
+      keyPrefix: throttleConfig.prefix,
+      points: throttleConfig.limit,
+      duration: 60 * 60 * 24 * 30, // Store number for 30 days since first fail
+      blockDuration: throttleConfig.blockDuration
+    });
+  }
+};
 
 @Module({
-  imports: [    
+  imports: [
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET || jwtConfig.secret,
@@ -55,13 +59,18 @@ const jwtConfig = config.get('jwt');
   ],
   controllers: [AuthController],
   providers: [
-    AuthService, 
-    // JwtTwoFactorStrategy,
-    // JwtStrategy,   
+    AuthService,
+    JwtTwoFactorStrategy,
+    JwtStrategy,
+    // UniqueValidatorPipe,
+    LoginThrottleFactory
   ],
   exports: [
-    AuthService, 
-    JwtModule,   
+    AuthService,
+    JwtTwoFactorStrategy,
+    JwtStrategy,
+    PassportModule,
+    JwtModule
   ]
 })
 export class AuthModule {}
