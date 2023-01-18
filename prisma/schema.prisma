@@ -11,77 +11,92 @@ model User {
   // id String @id @default(auto()) @map("_id") @db.ObjectId
   id String @id @default(uuid())
 
-  name     String
-  username String
-  // role      Role   @default(USER)
-  password String
-  email    String @unique
+  name              String
+  username          String
+  email             String    @unique
+  password          String
+  address           String?
+  contact           String?
+  avatar            String?
+  status            String
+  token             String?
+  tokenValidityDate DateTime?
+  salt              String
+  twoFASecret       String?
+  twoFAThrottleTime DateTime?
+  isTwoFAEnabled    Boolean   @default(false)
+  skipHashPassword  Boolean   @default(false)
+  role              Role      @relation(fields: [roleId], references: [id])
+  roleId String
 
   created_at DateTime @default(now())
   updated_at DateTime @default(now()) @updatedAt
 
+
   @@map("users")
 }
-
-model Permission {
-  id String @id @default(uuid())
-
-  resource    String
-  description String @unique
-  path        String
-  method      String
-  isDefault   Boolean
-
-  roles               Role[]
-  PermissionsOnRoles PermissionsOnRoles[]
-
-  @@map("permissions")
-}
-
 model Role {
   id String @id @default(uuid())
 
   name        String @unique
   description String
 
-  permissions         Permission[]
-  PermissionsOnRoles PermissionsOnRoles[]
+  permissions        Permission[]
+  // PermissionsOnRoles PermissionsOnRoles[]
+  User               User[]
 
   @@map("roles")
 }
 
-model PermissionsOnRoles {
-  role         Role       @relation(fields: [roleId], references: [id])
-  roleId       String // relation scalar field (used in the `@relation` attribute above)
-  permission   Permission @relation(fields: [permissionId], references: [id])
-  permissionId String // relation scalar field (used in the `@relation` attribute above)
-  assignedAt   DateTime   @default(now())
+model Permission {
+  id String @id @default(uuid())
 
-  @@id([roleId, permissionId])
+  resource    String
+  description String  @unique
+  path        String
+  method      String
+  isDefault   Boolean @default(false)
+
+  roles              Role[] 
+  // PermissionsOnRoles PermissionsOnRoles[]
+
+  @@map("permissions")
 }
+
+
+// model PermissionsOnRoles {
+//   // id String @id @default(uuid())
+//   role         Role       @relation(fields: [roleId], references: [id])
+//   roleId       String // relation scalar field (used in the `@relation` attribute above)
+//   permission   Permission @relation(fields: [permissionId], references: [id])
+//   permissionId String // relation scalar field (used in the `@relation` attribute above)
+//   assignedAt   DateTime   @default(now())
+
+//   @@id([roleId, permissionId])
+// }
 
 model EmailTemplate {
   id String @id @default(uuid())
 
-  title String @unique
-  slug String  @unique
-  sender String  
-  subject String 
-  body String 
+  title     String  @unique
+  slug      String  @unique
+  sender    String
+  subject   String
+  body      String
   isDefault Boolean
 
   @@map("emailsTemplate")
 }
 
 model RefreshToken {
-  id String @id @default(uuid())
-  userId String 
-  ip String  
-  userAgent String  
-  browser String? 
-  os String?  
-  isRevoked Boolean  
-  expires DateTime
+  id        String   @id @default(uuid())
+  userId    String
+  ip        String
+  userAgent String
+  browser   String?
+  os        String?
+  isRevoked Boolean
+  expires   DateTime
 
   @@map("tokens")
 }

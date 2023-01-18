@@ -28,8 +28,8 @@ export class RegisterUserDto {
   @MinLength(6, {
     message: 'minLength-{"ln":6,"count":6}'
   })
-  @MaxLength(20, {
-    message: 'maxLength-{"ln":20,"count":20}'
+  @MaxLength(30, {
+    message: 'maxLength-{"ln":30,"count":30}'
   })
   @Matches(
     /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])(?!.*\s).{6,20}$/,

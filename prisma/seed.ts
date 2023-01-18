@@ -1,32 +1,30 @@
 import { PrismaClient, Prisma } from '@prisma/client'
+import CreateEmailTemplateSeed from './create-email-template-seed';
+import CreatePermissionSeed from './create-permission-seed'
+import CreateRoleSeed from './create-roles-seed'
+import CreateUserSeed from './create-user-seed';
 
 const prisma = new PrismaClient()
 
-const userData: Prisma.UserCreateInput[] = [
-  {
-    name: 'lugpe',  
-    username: 'lugpe',   
-    password: 'password',
-    email: 'a@prisma.io',
-    // role: 'ADMIN',    
-  },
-  {
-    name: 'fabric',
-    username: 'fabric',
-    password: 'password',   
-    email: 'b@prisma.io',
-    // role: 'FABRIC',         
-  },
-]
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 async function main() {
   console.log(`Start seeding ...`)
-  for (const u of userData) {
-    const user = await prisma.user.create({
-      data: u,
-    })
-    console.log(`Created user with id: ${user.id}`)
-  }
+  const permissions = new CreatePermissionSeed()
+  permissions.run()
+
+  await sleep(5000) // need to wait to relations to be created
+  const roles = new CreateRoleSeed()
+  roles.run()
+  
+  const email = new CreateEmailTemplateSeed()
+  email.run()
+
+  await sleep(1000)
+  const users = new CreateUserSeed()
+  users.run()
+
   console.log(`Seeding finished.`)
 }
 

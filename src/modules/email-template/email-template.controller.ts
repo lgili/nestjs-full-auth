@@ -23,7 +23,7 @@ import { EmailTemplatesSearchFilterDto } from 'src/modules/email-template/dto/em
 import JwtTwoFactorGuard from 'src/common/guard/jwt-two-factor.guard';
 
 @ApiTags('email-templates')
-// @UseGuards(JwtTwoFactorGuard, PermissionGuard)
+@UseGuards(JwtTwoFactorGuard, PermissionGuard)
 @Controller('email-templates')
 export class EmailTemplateController {
   constructor(private readonly emailTemplateService: EmailTemplateService) {}

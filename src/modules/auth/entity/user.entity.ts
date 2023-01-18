@@ -10,13 +10,14 @@ import { RoleEntity } from 'src/modules/role/entities/role.entity';
  */
 export class UserEntity {
   id: string;
+  
+  name: string;
   username: string;
   
   email: string;
   
   password: string;
   
-  name: string;
   
   address: string;
   
