@@ -11,5 +11,5 @@
     "baseUrl": "./",
     "incremental": true
   },
-  "exclude": ["build","dist"]
+  "exclude": ["build", "dist"]
 }

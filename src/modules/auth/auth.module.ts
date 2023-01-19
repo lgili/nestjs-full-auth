@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 
 import { JwtModule } from '@nestjs/jwt';
@@ -15,6 +15,7 @@ import { RefreshTokenModule } from 'src/modules/refresh-token/refresh-token.modu
 import { JwtTwoFactorStrategy } from 'src/common/strategy/jwt-two-factor.strategy';
 import { JwtStrategy } from 'src/common/strategy/jwt.strategy';
 import { DatabaseModule } from './database/database.module';
+import { RolesModule } from '../role/roles.module';
 
 const throttleConfig = config.get('throttle.login');
 const redisConfig = config.get('queue');
@@ -55,6 +56,7 @@ const LoginThrottleFactory = {
     }),
     DatabaseModule.register(process.env.REPOSITORY_TYPE),
     MailModule,
+    forwardRef(() => RolesModule),
     RefreshTokenModule
   ],
   controllers: [AuthController],

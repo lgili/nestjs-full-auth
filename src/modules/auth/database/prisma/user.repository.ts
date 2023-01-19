@@ -41,6 +41,20 @@ export class UserPrismaRepository implements IUserRepository {
     return this.toDomain(user);
   }
 
+  async findByToken(token: string): Promise<UserEntity[]> {
+    const user = await this.prismaService.user.findMany({
+      where: {
+        token,
+      },
+    });
+
+    if (user.length <= 0) {
+      return [];
+    }
+
+    return this.transformMany(user);
+  }
+
   async findAll(): Promise<UserEntity[]> {
     const users = await this.prismaService.user.findMany();
 
@@ -110,15 +124,17 @@ export class UserPrismaRepository implements IUserRepository {
     
     const dd = instanceToPlain(
       user,      
-    )
-    console.log(dd)
-    console.log("was")
+    )    
     return {
       id: user.id,
       name: user.name,
       username: user.username,
       password: user.password,
-      email: user.email,      
+      email: user.email,    
+      status: user.status,
+      salt: user.salt,
+      roleId: user.roleId 
+            
     };
   }
 }

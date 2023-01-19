@@ -9,7 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { SignOptions } from 'jsonwebtoken';
 import * as config from 'config';
 import { existsSync, unlinkSync } from 'fs';
-
+import * as bcrypt from 'bcrypt';
 
 import { UserSearchFilterDto } from 'src/modules/auth/dto/user-search-filter.dto';
 import { UserEntity } from 'src/modules/auth/entity/user.entity';
@@ -32,6 +32,7 @@ import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { MailService } from '../mail/mail.service';
 import { RefreshTokenService } from '../refresh-token/refresh-token.service';
 import { MailJobInterface } from '../mail/interface/mail-job.interface';
+import { RolesService } from '../role/roles.service';
 
 
 const throttleConfig = config.get('throttle.login');
@@ -51,11 +52,41 @@ export class AuthService {
   constructor(    
     private readonly userRepository: IUserRepository,
     private readonly jwt: JwtService,
+    private readonly roleService: RolesService,
     private readonly mailService: MailService,
     private readonly refreshTokenService: RefreshTokenService,
   ) {}
 
-  
+  /**
+   * send mail
+   * @param user
+   * @param subject
+   * @param url
+   * @param slug
+   * @param linkLabel
+   */
+  async sendMailToUser(
+    user: UserSerializer,
+    subject: string,
+    url: string,
+    slug: string,
+    linkLabel: string
+  ) {
+    const appConfig = config.get('app');
+    const mailData: MailJobInterface = {
+      to: user.email,
+      subject,
+      slug,
+      context: {
+        email: user.email,
+        link: `<a href="${appConfig.frontendUrl}/${url}">${linkLabel} →</a>`,
+        username: user.username,
+        subject
+      }
+    };
+    await this.mailService.sendMail(mailData, 'system-mail');
+  }
+
   /**
    * add new user
    * @param createUserDto
@@ -65,10 +96,33 @@ export class AuthService {
   ): Promise<UserSerializer> {    
     
     const user = new UserEntity(registerUserDto)
-    console.log(user)
+    // just possible create normal user from register
+    const normalRole = await this.roleService.findByName('normal')
+    user.roleId = normalRole.id
+    const currentDateTime = new Date();
+    currentDateTime.setHours(currentDateTime.getHours() + 1);
+    user.tokenValidityDate = currentDateTime;
+    const token = await this.generateUniqueToken(12);
+    user.token = user.token
+
+    user.salt = await bcrypt.genSalt();
+    user.password = await bcrypt.hash(user.password, user.salt);
+
+    user.status = UserStatusEnum.INACTIVE    
     const userSaved = await this.userRepository.create(user);    
     console.log(userSaved)
-    return this.transform(userSaved);
+
+
+    const registerProcess = user.status;    
+    const subject = registerProcess ? 'Account created' : 'Set Password';
+    const link = registerProcess ? `verify/${token}` : `reset/${token}`;
+    const slug = registerProcess ? 'activate-account' : 'new-user-set-password';
+    const linkLabel = registerProcess ? 'Activate Account' : 'Set Password';
+
+    const UserSerializer = this.transform(userSaved);
+    await this.sendMailToUser(UserSerializer, subject, link, slug, linkLabel);
+
+    return UserSerializer
   }
 
  
@@ -97,6 +151,56 @@ export class AuthService {
     // });
     const userSaved = await this.userRepository.findById(id);
     return this.transform(userSaved)
+  }
+
+  /**
+   * generate unique token
+   * @param length
+   */
+  async generateUniqueToken(length: number): Promise<string> {
+    const token = this.generateRandomCode(length);
+    
+    const tokenCount = await this.userRepository.findByToken(token)
+    
+    // recursively find unique tokens
+    if (tokenCount.length > 0) {
+      await this.generateUniqueToken(length);
+    }
+    return token;
+  }
+
+  /**
+   * generate random string code providing length
+   * @param length
+   * @param uppercase
+   * @param lowercase
+   * @param numerical
+   */
+  generateRandomCode(
+    length: number,
+    uppercase = true,
+    lowercase = true,
+    numerical = true
+  ): string {
+    let result = '';
+    const lowerCaseAlphabets = 'abcdefghijklmnopqrstuvwxyz';
+    const upperCaseAlphabets = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const numericalLetters = '0123456789';
+    let characters = '';
+    if (uppercase) {
+      characters += upperCaseAlphabets;
+    }
+    if (lowercase) {
+      characters += lowerCaseAlphabets;
+    }
+    if (numerical) {
+      characters += numericalLetters;
+    }
+    const charactersLength = characters.length;
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
   }
 
   /**

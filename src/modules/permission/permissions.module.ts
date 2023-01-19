@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 
 import { AuthModule } from 'src/modules/auth/auth.module';
@@ -10,7 +10,7 @@ import { DatabaseModule } from './database/database.module';
 @Module({
   imports: [
     DatabaseModule.register(process.env.REPOSITORY_TYPE),
-    AuthModule],
+    forwardRef(() => AuthModule),],
   exports: [PermissionsService],
   controllers: [PermissionsController],
   providers: [PermissionsService/*, UniqueValidatorPipe*/]

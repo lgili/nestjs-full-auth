@@ -62,7 +62,7 @@ export class UserEntity {
   
   role: RoleEntity;
   
-  roleId: number;
+  roleId: string;
 
   constructor(data?: Partial<UserEntity>) {    
     if (data) {
@@ -88,6 +88,7 @@ export class UserEntity {
   }
 
   async hashPassword() {
+    this.salt = await bcrypt.genSalt();
     this.password = await bcrypt.hash(this.password, this.salt);
   }
 }
