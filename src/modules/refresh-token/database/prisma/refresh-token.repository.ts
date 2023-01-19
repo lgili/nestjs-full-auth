@@ -28,6 +28,23 @@ export class RefreshTokenPrismaRepository implements IRefreshTokenRepository {
     return this.toDomain(token);
   }
 
+  async findByUser(userId: string): Promise<RefreshTokenEntity[]> {
+    const token = await this.prismaService.refreshToken.findMany({
+      where: {
+        userId: userId,
+        isRevoked: false,        
+        expires: {          
+          gte: new Date()
+        },
+      },
+    });
+
+    if (!token) {
+      return null;
+    }
+
+    return this.transformMany(token);
+  }
   
 
   async findAll(): Promise<RefreshTokenEntity[]> {

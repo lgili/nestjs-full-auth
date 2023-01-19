@@ -12,7 +12,7 @@ import { existsSync, unlinkSync } from 'fs';
 import * as bcrypt from 'bcrypt';
 
 import { UserSearchFilterDto } from 'src/modules/auth/dto/user-search-filter.dto';
-import { UserEntity } from 'src/modules/auth/entity/user.entity';
+import { DeepPartial, UserEntity } from 'src/modules/auth/entity/user.entity';
 
 import { ExceptionTitleList } from 'src/common/constants/exception-title-list.constants';
 import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
@@ -33,6 +33,14 @@ import { MailService } from '../mail/mail.service';
 import { RefreshTokenService } from '../refresh-token/refresh-token.service';
 import { MailJobInterface } from '../mail/interface/mail-job.interface';
 import { RolesService } from '../role/roles.service';
+import { UserLoginDto } from './dto/user-login.dto';
+import { RefreshTokenEntity } from 'src/modules/refresh-token/entities/refresh-token.entity';
+import { RateLimiterRes, RateLimiterStoreAbstract } from 'rate-limiter-flexible';
+import { RefreshPaginateFilterDto } from '../refresh-token/dto/refresh-paginate-filter.dto';
+import { RefreshTokenSerializer } from '../refresh-token/serializer/refresh-token.serializer';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ForgetPasswordDto } from './dto/forget-password.dto';
 
 
 const throttleConfig = config.get('throttle.login');
@@ -47,6 +55,9 @@ const BASE_OPTIONS: SignOptions = {
   issuer: appConfig.appUrl,
   audience: appConfig.frontendUrl
 };
+
+
+
 @Injectable()
 export class AuthService {
   constructor(    
@@ -55,6 +66,8 @@ export class AuthService {
     private readonly roleService: RolesService,
     private readonly mailService: MailService,
     private readonly refreshTokenService: RefreshTokenService,
+    @Inject('LOGIN_THROTTLE')
+    private readonly rateLimiter: RateLimiterStoreAbstract
   ) {}
 
   /**
@@ -91,29 +104,31 @@ export class AuthService {
    * add new user
    * @param createUserDto
    */
-  async register(
-    registerUserDto: RegisterUserDto
+  async create(
+    createUserDto: DeepPartial<UserEntity>
   ): Promise<UserSerializer> {    
     
-    const user = new UserEntity(registerUserDto)
+    const user = new UserEntity(createUserDto)
+    const token = await this.generateUniqueToken(12);    
+    if(!user.status){
+      // normal user creation
+      const normalRole = await this.roleService.findByName('normal')
+      user.roleId = normalRole.id
+      const currentDateTime = new Date();
+      currentDateTime.setHours(currentDateTime.getHours() + 1);
+      user.tokenValidityDate = currentDateTime;
+      user.status = UserStatusEnum.INACTIVE   
+    }
+    
     // just possible create normal user from register
-    const normalRole = await this.roleService.findByName('normal')
-    user.roleId = normalRole.id
-    const currentDateTime = new Date();
-    currentDateTime.setHours(currentDateTime.getHours() + 1);
-    user.tokenValidityDate = currentDateTime;
-    const token = await this.generateUniqueToken(12);
-    user.token = user.token
-
+    user.token = token
     user.salt = await bcrypt.genSalt();
     user.password = await bcrypt.hash(user.password, user.salt);
 
-    user.status = UserStatusEnum.INACTIVE    
     const userSaved = await this.userRepository.create(user);    
-    console.log(userSaved)
+    // console.log(userSaved)
 
-
-    const registerProcess = user.status;    
+    const registerProcess = createUserDto.status;    
     const subject = registerProcess ? 'Account created' : 'Set Password';
     const link = registerProcess ? `verify/${token}` : `reset/${token}`;
     const slug = registerProcess ? 'activate-account' : 'new-user-set-password';
@@ -125,7 +140,191 @@ export class AuthService {
     return UserSerializer
   }
 
- 
+  /**
+   * Login user by username and password
+   * @param userLoginDto
+   * @param refreshTokenPayload
+   */
+  async login(
+    userLoginDto: UserLoginDto,
+    refreshTokenPayload: Partial<RefreshTokenEntity>
+  ): Promise<string[]> {
+    const usernameIPkey = `${userLoginDto.username}_${refreshTokenPayload.ip}`;
+    const resUsernameAndIP = await this.rateLimiter.get(usernameIPkey);
+    let retrySecs = 0;
+    // Check if user is already blocked
+    if (
+      resUsernameAndIP !== null &&
+      resUsernameAndIP.consumedPoints > throttleConfig.limit
+    ) {
+      retrySecs = Math.round(resUsernameAndIP.msBeforeNext / 1000) || 1;
+    }
+    if (retrySecs > 0) {
+      throw new CustomHttpException(
+        `tooManyRequest-{"second":"${String(retrySecs)}"}`,
+        HttpStatus.TOO_MANY_REQUESTS,
+        StatusCodesList.TooManyTries
+      );
+    }
+
+    const [user, error, code] = await this.verifyUser(userLoginDto);
+    
+    if (!user) {
+      const [result, throttleError] = await this.limitConsumerPromiseHandler(
+        usernameIPkey
+      );
+      if (!result) {
+        throw new CustomHttpException(
+          `tooManyRequest-{"second":${String(
+            Math.round(throttleError.msBeforeNext / 1000) || 1
+          )}}`,
+          HttpStatus.TOO_MANY_REQUESTS,
+          StatusCodesList.TooManyTries
+        );
+      }
+      throw new UnauthorizedException(error, code);
+    }
+    const userSerializer = this.transform(user)
+    
+    const accessToken = await this.generateAccessToken(userSerializer);
+    let refreshToken = null;
+    if (userLoginDto.remember) {
+      refreshToken = await this.refreshTokenService.generateRefreshToken(
+        userSerializer,
+        refreshTokenPayload
+      );
+    }
+    await this.rateLimiter.delete(usernameIPkey);
+    return this.buildResponsePayload(accessToken, refreshToken);
+  }
+
+  /**
+   * update user
+   * @param id
+   * @param updateUserDto
+   */
+  async update(
+    id: string,
+    updateUserDto: Partial<UserEntity>
+  ): Promise<UserSerializer> {
+    // const user = await this.userRepository.get(id, [], {
+    //   groups: [
+    //     ...ownerUserGroupsForSerializing,
+    //     ...adminUserGroupsForSerializing
+    //   ]
+    // });
+    const user = await this.userRepository.findById(id)      
+    const errorPayload: ValidationPayloadInterface[] = [];
+
+    if(updateUserDto.email) {
+    const newEmail = await this.userRepository.findByEmail(updateUserDto.email)
+      if(newEmail){        
+        errorPayload.push({
+          property: 'email',
+          constraints: {
+            unique: 'already taken'
+          }
+        });
+      }
+    }
+    if(updateUserDto.username){
+      const newUsername = await this.userRepository.findByUsername(updateUserDto.username)
+      if(newUsername){        
+        errorPayload.push({
+          property: 'username',
+          constraints: {
+            unique: 'already taken'
+          }
+        });
+      }
+    }
+    
+    if (Object.keys(errorPayload).length > 0) {
+      throw new UnprocessableEntityException(errorPayload);
+    }
+    if (updateUserDto.avatar && user.avatar) {
+      const path = `public/images/profile/${user.avatar}`;
+      if (existsSync(path)) {
+        unlinkSync(`public/images/profile/${user.avatar}`);
+      }
+    }
+    user.update(updateUserDto)
+    const userSaved = await this.userRepository.update(user);
+        
+    return this.transform(userSaved)
+  }
+
+  /**
+   * login user
+   * @param userLoginDto
+   */
+  async verifyUser(
+    userLoginDto: UserLoginDto
+  ): Promise<[user: UserEntity, error: string, code: number]> {
+    const { username, password } = userLoginDto;
+    const user = await this.userRepository.findByUsername(username);
+        
+    if(user) {
+      const hash = await bcrypt.hash(password, user.salt);
+      if (user && (hash === user.password)) {        
+        if (user.status !== UserStatusEnum.ACTIVE) {
+          return [
+            null,
+            ExceptionTitleList.UserInactive,
+            StatusCodesList.UserInactive
+          ];
+        }
+        return [user, null, null];
+      }
+    }
+    return [
+      null,
+      ExceptionTitleList.InvalidCredentials,
+      StatusCodesList.InvalidCredentials
+    ];
+  }
+
+  /**
+   * activate newly register account
+   * @param token
+   */
+  async activateAccount(token: string): Promise<void> {
+    const user = await this.userRepository.findByToken(token);    
+    if (!user) {
+      throw new NotFoundException();
+    }
+    if (user.status !== UserStatusEnum.INACTIVE) {
+      throw new ForbiddenException(
+        ExceptionTitleList.UserInactive,
+        StatusCodesList.UserInactive
+      );
+    }
+    user.status = UserStatusEnum.ACTIVE;
+    user.token = await this.generateUniqueToken(6);
+    user.skipHashPassword = true;
+    await this.userRepository.update(user);
+  }
+
+  /**
+   * promise handler to handle result and error for login
+   * throttle by user
+   * @param usernameIPkey
+   */
+  async limitConsumerPromiseHandler(
+    usernameIPkey: string
+  ): Promise<[RateLimiterRes, RateLimiterRes]> {
+    return new Promise((resolve) => {
+      this.rateLimiter
+        .consume(usernameIPkey)
+        .then((rateLimiterRes) => {
+          resolve([rateLimiterRes, null]);
+        })
+        .catch((rateLimiterError) => {
+          resolve([null, rateLimiterError]);
+        });
+    });
+  }
+  
   /**
    * get user profile
    * @param user
@@ -154,6 +353,30 @@ export class AuthService {
   }
 
   /**
+   * Get all user paginated
+   * @param userSearchFilterDto
+   */
+  async findAll(
+    userSearchFilterDto: UserSearchFilterDto
+  ): Promise<UserSerializer[]> {
+    // return this.userRepository.paginate(
+    //   userSearchFilterDto,
+    //   ['role'],
+    //   ['username', 'email', 'name', 'contact', 'address'],
+    //   {
+    //     groups: [
+    //       ...adminUserGroupsForSerializing,
+    //       ...ownerUserGroupsForSerializing,
+    //       ...defaultUserGroupsForSerializing
+    //     ]
+    //   }
+    // );
+    const users = await this.userRepository.findAll()
+    return this.transformMany(users)
+
+  }
+
+  /**
    * generate unique token
    * @param length
    */
@@ -163,10 +386,116 @@ export class AuthService {
     const tokenCount = await this.userRepository.findByToken(token)
     
     // recursively find unique tokens
-    if (tokenCount.length > 0) {
+    if (tokenCount) {      
       await this.generateUniqueToken(length);
     }
     return token;
+  }
+
+  /**
+   * revoke refresh token for logout action
+   * @param encoded
+   */
+  async revokeRefreshToken(encoded: string): Promise<void> {
+    // ignore exception because anyway we are going invalidate cookies
+    try {
+      const { token } = await this.refreshTokenService.resolveRefreshToken(
+        encoded
+      );
+      if (token) {
+        token.isRevoked = true;
+        await this.refreshTokenService.updateRefreshToken(token);
+      }
+    } catch (e) {
+      throw new CustomHttpException(
+        ExceptionTitleList.InvalidRefreshToken,
+        HttpStatus.PRECONDITION_FAILED,
+        StatusCodesList.InvalidRefreshToken
+      );
+    }
+  }
+
+
+  /**
+   * forget password and send reset code by email
+   * @param forgetPasswordDto
+   */
+  async forgotPassword(forgetPasswordDto: ForgetPasswordDto): Promise<void> {
+    const { email } = forgetPasswordDto;
+
+    const user = await this.userRepository.findByEmail(email)     
+    if (!user) {
+      return;
+    }
+    const token = await this.generateUniqueToken(6);
+    user.token = token;
+    const currentDateTime = new Date();
+    currentDateTime.setHours(currentDateTime.getHours() + 1);
+    user.tokenValidityDate = currentDateTime;
+    user.skipHashPassword = true;
+    await this.userRepository.update(user)
+    
+    const subject = 'Reset Password';
+    const userSerializer = this.transform(user)
+    await this.sendMailToUser(
+      userSerializer,
+      subject,
+      `reset/${token}`,
+      'reset-password',
+      subject
+    );
+  }
+  
+  /**
+   * reset password using token
+   * @param resetPasswordDto
+   */
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
+    const { password } = resetPasswordDto;
+    const user = await this.getUserForResetPassword(
+      resetPasswordDto
+    );
+    if (!user) {
+      throw new NotFoundException();
+    }
+    user.token = await this.generateUniqueToken(6);
+    user.password = await bcrypt.hash(password, user.salt);
+    // user.password = password;
+    await this.userRepository.update(user)
+  }
+  
+  /**
+   * change password of logged in user
+   * @param user
+   * @param changePasswordDto
+   */
+  async changePassword(
+    user: UserEntity,
+    changePasswordDto: ChangePasswordDto
+  ): Promise<void> {
+    const { oldPassword, password } = changePasswordDto;
+    const hash = await bcrypt.hash(oldPassword, user.salt);
+    console.log(oldPassword)
+    console.log(password)
+    console.log(hash)
+    console.log(user.password)
+    // const checkOldPwdMatches = await user.validatePassword(oldPassword);
+    let checkOldPwdMatches = false;
+    if(hash === user.password){
+      checkOldPwdMatches =  true
+    }
+    // FIXME
+    if (!checkOldPwdMatches) {
+      throw new CustomHttpException(
+        ExceptionTitleList.IncorrectOldPassword,
+        HttpStatus.PRECONDITION_FAILED,
+        StatusCodesList.IncorrectOldPassword
+      );
+    }
+    user.password = await bcrypt.hash(password, user.salt);
+    
+    await this.userRepository.update(user)
+    
   }
 
   /**
@@ -223,6 +552,23 @@ export class AuthService {
   }
 
   /**
+   * Get cookie for logout action
+   */
+  getCookieForLogOut(): string[] {
+    return [
+      `Authentication=; HttpOnly; Path=/; Max-Age=0; ${
+        !isSameSite ? 'SameSite=None; Secure;' : ''
+      }`,
+      `Refresh=; HttpOnly; Path=/; Max-Age=0; ${
+        !isSameSite ? 'SameSite=None; Secure;' : ''
+      }`,
+      `ExpiresIn=; Path=/; Max-Age=0; ${
+        !isSameSite ? 'SameSite=None; Secure;' : ''
+      }`
+    ];
+  }
+
+  /**
    * build response payload
    * @param accessToken
    * @param refreshToken
@@ -248,6 +594,39 @@ export class AuthService {
     return tokenCookies;
   }
 
+
+  /**
+   * Create access token from refresh token
+   * @param refreshToken
+   */
+  async createAccessTokenFromRefreshToken(refreshToken: string) {
+    const { token } =
+      await this.refreshTokenService.createAccessTokenFromRefreshToken(
+        refreshToken
+      );
+    return this.buildResponsePayload(token);
+  }
+  
+  /**
+   * get active refresh token list for user
+   * @param userId
+   * @param filter
+   **/
+  activeRefreshTokenList(
+    userId: string,
+    filter: RefreshPaginateFilterDto
+  ): Promise<RefreshTokenSerializer[]> {
+    return this.refreshTokenService.getRefreshTokenByUserId(userId, filter);
+  }
+  
+  /**
+   * revoke token by id
+   * @param id
+   * @param userId
+   **/
+  revokeTokenById(id: string, userId: string): Promise<RefreshTokenEntity> {
+    return this.refreshTokenService.revokeRefreshTokenById(id, userId);
+  }
 
   /**
    * set two factor auth secret for user
@@ -299,6 +678,29 @@ export class AuthService {
     }
     user.isTwoFAEnabled = isTwoFAEnabled;
     return this.userRepository.update(user);
+  }
+
+
+  /**
+   * Get user entity for reset password
+   * @param resetPasswordDto
+   */
+  async getUserForResetPassword(
+    resetPasswordDto: ResetPasswordDto
+  ): Promise<UserEntity> {
+    const { token } = resetPasswordDto;
+    // const query = this.createQueryBuilder('user');
+    // query.where('user.token = :token', { token });
+    // query.andWhere('user.tokenValidityDate > :date', {
+    //   date: new Date()
+    // });
+    // return query.getOne();
+    
+    const user = await this.userRepository.findByToken(token)
+    if(user && user.tokenValidityDate > new Date()){
+      return user
+    }
+    return null
   }
 
     /**

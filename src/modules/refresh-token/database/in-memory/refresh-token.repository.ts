@@ -19,6 +19,14 @@ export class RefreshTokenInMemoryRepository implements IRefreshTokenRepository {
     return this.refreshTokens[userIndex];
   }
 
+  async findByUser(userId: string): Promise<RefreshTokenEntity[]> {
+    const userIndex = this.refreshTokens.findIndex((userItem) => {
+      return userItem.userId === userId;
+    });
+
+    return [this.refreshTokens[userIndex]];
+  }
+
   
 
   async findAll(): Promise<RefreshTokenEntity[]> {

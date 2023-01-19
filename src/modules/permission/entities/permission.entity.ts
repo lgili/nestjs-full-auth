@@ -15,7 +15,7 @@ export class PermissionEntity  {
   
   isDefault: boolean;
   
-  role: RoleEntity[];
+  roles: RoleEntity[];
 
   constructor(data?: Partial<PermissionEntity>) {    
     if (data) {

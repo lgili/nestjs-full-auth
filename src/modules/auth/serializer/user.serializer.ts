@@ -17,9 +17,9 @@ export const defaultUserGroupsForSerializing: string[] = ['timestamps'];
  * user serializer
  */
 export class UserSerializer extends ModelSerializer {
-  @Expose({
-    groups: [...ownerUserGroupsForSerializing, ...adminUserGroupsForSerializing]
-  })
+  // @Expose({
+  //   groups: [...ownerUserGroupsForSerializing, ...adminUserGroupsForSerializing]
+  // })
   id: string;
 
   @ApiProperty()

@@ -46,5 +46,5 @@ export class UpdateUserDto {
 
   @ApiPropertyOptional()
   @ValidateIf((object, value) => value)
-  roleId: number;
+  roleId: string;
 }

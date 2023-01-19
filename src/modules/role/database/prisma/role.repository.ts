@@ -21,6 +21,9 @@ export class RolePrismaRepository implements IRoleRepository {
       where: {
         id,
       },
+      include:{
+        permissions: true
+      }
     });
 
     if (!role) {
@@ -34,7 +37,10 @@ export class RolePrismaRepository implements IRoleRepository {
     const role = await this.prismaService.role.findUnique({
       where: {
         name          
-      },      
+      },   
+      include:{
+        permissions: true
+      }   
     });
 
     if (!role) {

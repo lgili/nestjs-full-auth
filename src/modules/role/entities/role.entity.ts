@@ -7,7 +7,7 @@ export class RoleEntity {
   id: string;
   name: string;  
   description: string;    
-  permission: PermissionEntity[];
+  permissions: PermissionEntity[];
 
   constructor(data?: Partial<RoleEntity>) {    
     if (data) {

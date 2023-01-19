@@ -5,11 +5,19 @@ import { Exclude } from 'class-transformer';
 import { UserStatusEnum } from 'src/modules/auth/user-status.enum';
 import { RoleEntity } from 'src/modules/role/entities/role.entity';
 
+
+/**
+ * Same as Partial<T> but goes deeper and makes Partial<T> all its properties and sub-properties.
+ */
+export declare type DeepPartial<T> = T extends object ? {
+  [P in keyof T]?: DeepPartial<T[P]>;
+} : T;
+
 /**
  * User Entity
  */
 export class UserEntity {
-  id: string;
+  id?: string;
   
   name: string;
   username: string;
@@ -64,7 +72,14 @@ export class UserEntity {
   
   roleId: string;
 
-  constructor(data?: Partial<UserEntity>) {    
+
+  constructor(data?: DeepPartial<UserEntity>) {    
+    if (data) {
+      Object.assign(this, data);
+    }
+  }
+
+  async update(data?: Partial<UserEntity>) {    
     if (data) {
       Object.assign(this, data);
     }

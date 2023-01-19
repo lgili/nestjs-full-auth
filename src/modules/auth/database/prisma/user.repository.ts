@@ -18,12 +18,19 @@ export class UserPrismaRepository implements IUserRepository {
       where: {
         id,
       },
+      include:{
+        role : {
+          include: {
+            permissions: true
+          }
+        }     
+      }
     });
 
     if (!user) {
       return null;
     }
-
+    
     return this.toDomain(user);
   }
 
@@ -32,6 +39,13 @@ export class UserPrismaRepository implements IUserRepository {
       where: {
         email,
       },
+      include:{
+        role : {
+          include: {
+            permissions: true
+          }
+        }     
+      }
     });
 
     if (!user) {
@@ -41,18 +55,39 @@ export class UserPrismaRepository implements IUserRepository {
     return this.toDomain(user);
   }
 
-  async findByToken(token: string): Promise<UserEntity[]> {
-    const user = await this.prismaService.user.findMany({
+  async findByUsername(username: string): Promise<UserEntity> {
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        username,
+      },
+      include:{
+        role : {
+          include: {
+            permissions: true
+          }
+        }     
+      }
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    return this.toDomain(user);
+  }
+
+  async findByToken(token: string): Promise<UserEntity> {
+    const user = await this.prismaService.user.findUnique({
       where: {
         token,
       },
     });
 
-    if (user.length <= 0) {
-      return [];
+    if (!user) {
+      return null;
     }
 
-    return this.transformMany(user);
+    return this.toDomain(user);
   }
 
   async findAll(): Promise<UserEntity[]> {
@@ -133,8 +168,9 @@ export class UserPrismaRepository implements IUserRepository {
       email: user.email,    
       status: user.status,
       salt: user.salt,
-      roleId: user.roleId 
-            
+      token: user.token,
+      tokenValidityDate: user.tokenValidityDate,
+      roleId: user.roleId             
     };
   }
 }

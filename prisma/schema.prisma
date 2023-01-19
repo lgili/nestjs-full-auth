@@ -12,14 +12,14 @@ model User {
   id String @id @default(uuid())
 
   name              String
-  username          String
+  username          String    @unique
   email             String    @unique
   password          String
   address           String?
   contact           String?
   avatar            String?
   status            String
-  token             String?
+  token             String? @unique
   tokenValidityDate DateTime?
   salt              String
   twoFASecret       String?

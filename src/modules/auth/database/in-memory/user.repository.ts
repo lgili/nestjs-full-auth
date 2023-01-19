@@ -16,19 +16,26 @@ export class UserInMemoryRepository implements IUserRepository {
     return this.users[userIndex];
   }
 
-  async findByToken(token: string): Promise<UserEntity[]> {
-    const usersLocal: UserEntity[] = []
+  async findByToken(token: string): Promise<UserEntity> {
+    
     const userIndex = this.users.findIndex((userItem) => {
       return userItem.token === token;
     });
 
-    // this return empty array always FIXME
-    return usersLocal;
+    return this.users[userIndex];
   }
 
   async findByEmail(email: string): Promise<UserEntity> {
     const userIndex = this.users.findIndex((userItem) => {
       return userItem.email === email;
+    });
+
+    return this.users[userIndex];
+  }
+
+  async findByUsername(username: string): Promise<UserEntity> {
+    const userIndex = this.users.findIndex((userItem) => {
+      return userItem.username === username;
     });
 
     return this.users[userIndex];

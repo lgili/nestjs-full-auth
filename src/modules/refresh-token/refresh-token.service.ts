@@ -19,6 +19,7 @@ import { RefreshTokenSerializer } from 'src/modules/refresh-token/serializer/ref
 import { Pagination } from 'src/modules/paginate';
 import { IRefreshTokenRepository } from './i-refresh-token.repository';
 import { RefreshTokenEntity } from './entities/refresh-token.entity';
+import { instanceToPlain, plainToInstance } from 'class-transformer';
 
 const appConfig = config.get('app');
 const tokenConfig = config.get('jwt');
@@ -54,6 +55,7 @@ export class RefreshTokenService {
       expiration.getSeconds() + tokenConfig.refreshExpiresIn
     );
     token.expires = expiration;
+    console.log(token)
 
     const tokenSaved = await this.refreshTokenRepository.create(token);
     const opts: SignOptions = {
@@ -192,61 +194,61 @@ export class RefreshTokenService {
     return this.refreshTokenRepository.findById(tokenId.toString());
   }
 
+
+  async updateRefreshToken(token: RefreshTokenEntity){
+    return await this.refreshTokenRepository.update(token);
+  }
+
   /**
    * Get active refresh token list of user
    * @param userId
    */
-  // async getRefreshTokenByUserId(
-  //   userId: number,
-  //   filter: RefreshPaginateFilterDto
-  // ): Promise<Pagination<RefreshTokenSerializer>> {
-  //   const paginationInfo: PaginationInfoInterface =
-  //     this.repository.getPaginationInfo(filter);
-  //   const findOptions: FindManyOptions = {
-  //     where: {
-  //       userId,
-  //       isRevoked: false,
-  //       expires: MoreThanOrEqual(new Date())
-  //     }
-  //   };
-  //   const { page, skip, limit } = paginationInfo;
-  //   findOptions.take = paginationInfo.limit;
-  //   findOptions.skip = paginationInfo.skip;
-  //   findOptions.order = {
-  //     id: 'DESC'
-  //   };
-  //   const [results, total] = await this.repository.findAndCount(findOptions);
-  //   const serializedResult = this.repository.transformMany(results);
-  //   return new Pagination<RefreshTokenSerializer>({
-  //     results: serializedResult,
-  //     totalItems: total,
-  //     pageSize: limit,
-  //     currentPage: page,
-  //     previous: page > 1 ? page - 1 : 0,
-  //     next: total > skip + limit ? page + 1 : 0
-  //   });
-  // }
+  async getRefreshTokenByUserId(
+    userId: string,
+    filter: RefreshPaginateFilterDto
+  ): Promise<RefreshTokenSerializer[]> {
+
+    const tokens = await this.refreshTokenRepository.findByUser(userId);    
+    
+    // const { page, skip, limit } = paginationInfo;
+    // findOptions.take = paginationInfo.limit;
+    // findOptions.skip = paginationInfo.skip;
+    // findOptions.order = {
+    //   id: 'DESC'
+    // };
+    // const [results, total] = await this.repository.findAndCount(findOptions);
+    const serializedResult = this.transformMany(tokens);
+    // return new Pagination<RefreshTokenSerializer>({
+    //   results: serializedResult,
+    //   totalItems: total,
+    //   pageSize: limit,
+    //   currentPage: page,
+    //   previous: page > 1 ? page - 1 : 0,
+    //   next: total > skip + limit ? page + 1 : 0
+    // });
+    return serializedResult
+  }
 
   /**
    * Revoke refresh token by id
    * @param id
    * @param userId
    */
-  // async revokeRefreshTokenById(
-  //   id: string,
-  //   userId: string
-  // ): Promise<RefreshTokenEntity> {
-  //   const token = await this.refreshTokenRepository.findById(id);
-  //   if (!token) {
-  //     throw new NotFoundException();
-  //   }
-  //   if (token.userId !== userId) {
-  //     throw new ForbiddenException();
-  //   }
-  //   token.isRevoked = true;
-  //   const tokenSaved = await this.refreshTokenRepository.update(token)
-  //   return tokenSaved;
-  // }
+  async revokeRefreshTokenById(
+    id: string,
+    userId: string
+  ): Promise<RefreshTokenEntity> {
+    const token = await this.refreshTokenRepository.findById(id);
+    if (!token) {
+      throw new NotFoundException();
+    }
+    if (token.userId !== userId) {
+      throw new ForbiddenException();
+    }
+    token.isRevoked = true;
+    const tokenSaved = await this.refreshTokenRepository.update(token)
+    return tokenSaved;
+  }
 
   // async getRefreshTokenGroupedData(field: string) {
   //   return this.repository
@@ -257,4 +259,29 @@ export class RefreshTokenService {
   //     .groupBy(`token.${field}`)
   //     .getRawMany();
   // }
+
+
+   /**
+   * transform role entity
+   * @param model
+   * @param transformOption
+   */
+   transform(model: RefreshTokenEntity, transformOption = {}): RefreshTokenSerializer {
+    return plainToInstance(
+      RefreshTokenSerializer,
+      instanceToPlain(model, transformOption),
+      transformOption
+    );
+  }
+
+  
+  
+  /**
+   * transform many roles collection
+   * @param models
+   * @param transformOption
+   */
+  transformMany(models: RefreshTokenEntity[], transformOption = {}): RefreshTokenSerializer[] {
+    return models.map((model) => this.transform(model, transformOption));
+  }
 }

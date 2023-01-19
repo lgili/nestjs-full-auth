@@ -1,5 +1,5 @@
-import { OmitType } from '@nestjs/swagger';
-import { IsIn, IsNumber } from 'class-validator';
+import { OmitType, PartialType } from '@nestjs/swagger';
+import { IsIn, IsNumber, IsString } from 'class-validator';
 
 import { RegisterUserDto } from 'src/modules/auth/dto/register-user.dto';
 import { UserStatusEnum } from '../user-status.enum';
@@ -13,14 +13,12 @@ const statusEnumArray = [
 /**
  * create user data transform object
  */
-export class CreateUserDto extends OmitType(RegisterUserDto, [
-  'password'
-] as const) {
+export class CreateUserDto extends PartialType(RegisterUserDto){
   @IsIn(statusEnumArray, {
     message: `isIn-{"items":"${statusEnumArray.join(',')}"}`
   })
   status: UserStatusEnum;
 
-  @IsNumber()
-  roleId: number;
+  @IsString()
+  roleId: string;
 }
