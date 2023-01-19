@@ -10,7 +10,10 @@ const redisConfig = config.get('queue');
   providers: [
     {
       provide: REDIS,
-      useValue: Redis.createClient({ port: process.env.REDIS_PORT || redisConfig.port, host:  process.env.REDIS_HOST || redisConfig.host, }),
+      useValue: Redis.createClient({
+        port: process.env.REDIS_PORT || redisConfig.port,
+        host: process.env.REDIS_HOST || redisConfig.host,
+      }),
     },
   ],
   exports: [REDIS],

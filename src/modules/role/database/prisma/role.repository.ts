@@ -1,15 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Role as PersistenceRole } from '@prisma/client';
-import { classToPlain, instanceToPlain, plainToClass, plainToInstance } from 'class-transformer';
+import {
+  classToPlain,
+  instanceToPlain,
+  plainToClass,
+  plainToInstance,
+} from 'class-transformer';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import { PermissionEntity } from 'src/modules/permission/entities/permission.entity';
 import { RoleEntity } from '../../entities/role.entity';
 
 import { IRoleRepository } from '../../i-role.repository';
-
-
-
-
 
 @Injectable()
 export class RolePrismaRepository implements IRoleRepository {
@@ -21,9 +22,9 @@ export class RolePrismaRepository implements IRoleRepository {
       where: {
         id,
       },
-      include:{
-        permissions: true
-      }
+      include: {
+        permissions: true,
+      },
     });
 
     if (!role) {
@@ -36,11 +37,11 @@ export class RolePrismaRepository implements IRoleRepository {
   async findByName(name: string): Promise<RoleEntity> {
     const role = await this.prismaService.role.findUnique({
       where: {
-        name          
-      },   
-      include:{
-        permissions: true
-      }   
+        name,
+      },
+      include: {
+        permissions: true,
+      },
     });
 
     if (!role) {
@@ -60,28 +61,30 @@ export class RolePrismaRepository implements IRoleRepository {
     return this.transformMany(roles);
   }
 
-  async create(role: RoleEntity, permissions: PermissionEntity[]): Promise<RoleEntity> {
+  async create(
+    role: RoleEntity,
+    permissions: PermissionEntity[],
+  ): Promise<RoleEntity> {
     try {
       const data = this.toPersistence(role);
       type justId = {
-        id: string
-      }
-      const permissionsID: justId[] = [] 
-      permissions.forEach((permission) =>{
+        id: string;
+      };
+      const permissionsID: justId[] = [];
+      permissions.forEach((permission) => {
         permissionsID.push({
-          id: permission.id
-        })
-      })
-      const roleSaved = await this.prismaService.role.create(
-        {
-           data: {
-            name: role.name,
-            description: role.description,
-            permissions: {
-              connect: [...permissionsID]
-            }
-           }
+          id: permission.id,
         });
+      });
+      const roleSaved = await this.prismaService.role.create({
+        data: {
+          name: role.name,
+          description: role.description,
+          permissions: {
+            connect: [...permissionsID],
+          },
+        },
+      });
       return this.toDomain(roleSaved);
     } catch (error) {
       this.logger.error(error);
@@ -115,11 +118,10 @@ export class RolePrismaRepository implements IRoleRepository {
     return plainToInstance(
       RoleEntity,
       instanceToPlain(model, transformOption),
-      transformOption
+      transformOption,
     );
   }
 
-  
   /**
    * toDomain users collection
    * @param models
@@ -129,14 +131,11 @@ export class RolePrismaRepository implements IRoleRepository {
     return models.map((model) => this.toDomain(model, transformOption));
   }
 
-
   toPersistence(role: RoleEntity) {
-    
-        
     return {
       id: role.id,
       name: role.name,
-      description: role.description,            
+      description: role.description,
     };
   }
 }

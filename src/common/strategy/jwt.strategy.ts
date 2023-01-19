@@ -16,13 +16,10 @@ const cookieExtractor = (req) => {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt-strategy') {
-  constructor(
-    
-    private userRepository: IUserRepository
-  ) {
+  constructor(private userRepository: IUserRepository) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([cookieExtractor]),
-      secretOrKey: process.env.JWT_SECRET || config.get('jwt.secret')
+      secretOrKey: process.env.JWT_SECRET || config.get('jwt.secret'),
     });
   }
 
@@ -36,7 +33,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt-strategy') {
     //   relations: ['role', 'role.permission']
     // });
     // FIXME:
-    const user = await this.userRepository.findById(subject)
+    const user = await this.userRepository.findById(subject);
     if (!user) {
       throw new UnauthorizedException();
     }

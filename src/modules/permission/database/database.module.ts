@@ -5,7 +5,6 @@ import { PrismaModule } from './prisma/module';
 
 type RepositoryType = typeof process.env.REPOSITORY_TYPE;
 
-
 @Module({})
 export class DatabaseModule {
   static register(repositoryType: RepositoryType): DynamicModule {

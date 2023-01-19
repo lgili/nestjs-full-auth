@@ -6,9 +6,8 @@ import {
   Matches,
   MaxLength,
   MinLength,
-  Validate
+  Validate,
 } from 'class-validator';
-
 
 /**
  * register user data transform object
@@ -16,7 +15,7 @@ import {
 export class RegisterUserDto {
   @IsNotEmpty()
   @IsString()
-  @IsLowercase()  
+  @IsLowercase()
   username: string;
 
   @IsNotEmpty()
@@ -26,17 +25,17 @@ export class RegisterUserDto {
 
   @IsNotEmpty()
   @MinLength(6, {
-    message: 'minLength-{"ln":6,"count":6}'
+    message: 'minLength-{"ln":6,"count":6}',
   })
   @MaxLength(30, {
-    message: 'maxLength-{"ln":30,"count":30}'
+    message: 'maxLength-{"ln":30,"count":30}',
   })
   @Matches(
     /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])(?!.*\s).{6,20}$/,
     {
       message:
-        'password should contain at least one lowercase letter, one uppercase letter, one numeric digit, and one special character'
-    }
+        'password should contain at least one lowercase letter, one uppercase letter, one numeric digit, and one special character',
+    },
   )
   password: string;
 

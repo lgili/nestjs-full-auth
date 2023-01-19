@@ -1,6 +1,5 @@
-import { PermissionEntity } from "../permission/entities/permission.entity";
-import { EmailTemplateEntity } from "./entities/email-template.entity";
-
+import { PermissionEntity } from '../permission/entities/permission.entity';
+import { EmailTemplateEntity } from './entities/email-template.entity';
 
 export abstract class IEmailTemplateRepository {
   abstract findById: (id: string) => Promise<EmailTemplateEntity>;

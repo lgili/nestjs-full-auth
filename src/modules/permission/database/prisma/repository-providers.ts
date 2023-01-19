@@ -1,7 +1,6 @@
 import { IPermissionRepository } from '../../i-permission.repository';
 import { PermissionPrismaRepository } from './permission.repository';
 
-
 export default [
   // Repository
   {

@@ -1,7 +1,6 @@
 import { IRefreshTokenRepository } from '../../i-refresh-token.repository';
 import { RefreshTokenPrismaRepository } from './refresh-token.repository';
 
-
 export default [
   // Repository
   {

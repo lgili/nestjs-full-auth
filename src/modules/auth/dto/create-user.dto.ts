@@ -7,15 +7,15 @@ import { UserStatusEnum } from '../user-status.enum';
 const statusEnumArray = [
   UserStatusEnum.ACTIVE,
   UserStatusEnum.INACTIVE,
-  UserStatusEnum.BLOCKED
+  UserStatusEnum.BLOCKED,
 ];
 
 /**
  * create user data transform object
  */
-export class CreateUserDto extends PartialType(RegisterUserDto){
+export class CreateUserDto extends PartialType(RegisterUserDto) {
   @IsIn(statusEnumArray, {
-    message: `isIn-{"items":"${statusEnumArray.join(',')}"}`
+    message: `isIn-{"items":"${statusEnumArray.join(',')}"}`,
   })
   status: UserStatusEnum;
 

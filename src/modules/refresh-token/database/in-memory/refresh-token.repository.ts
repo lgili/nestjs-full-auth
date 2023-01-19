@@ -5,11 +5,9 @@ import { RoleEntity } from 'src/modules/role/entities/role.entity';
 import { IRefreshTokenRepository } from '../../i-refresh-token.repository';
 import { RefreshTokenSerializer } from '../../serializer/refresh-token.serializer';
 
-
 @Injectable()
 export class RefreshTokenInMemoryRepository implements IRefreshTokenRepository {
   private refreshTokens: RefreshTokenEntity[] = [];
-
 
   async findById(id: string): Promise<RefreshTokenEntity> {
     const userIndex = this.refreshTokens.findIndex((userItem) => {
@@ -26,8 +24,6 @@ export class RefreshTokenInMemoryRepository implements IRefreshTokenRepository {
 
     return [this.refreshTokens[userIndex]];
   }
-
-  
 
   async findAll(): Promise<RefreshTokenEntity[]> {
     return this.refreshTokens;
@@ -55,6 +51,4 @@ export class RefreshTokenInMemoryRepository implements IRefreshTokenRepository {
 
     this.refreshTokens.splice(tokenIndex, 1);
   }
-
-    
 }

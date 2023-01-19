@@ -2,7 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 
 import { JwtModule } from '@nestjs/jwt';
-import  Redis from 'ioredis';
+import Redis from 'ioredis';
 import * as config from 'config';
 
 import { AuthController } from 'src/modules/auth/auth.controller';
@@ -27,18 +27,17 @@ const LoginThrottleFactory = {
       enableOfflineQueue: false,
       host: process.env.REDIS_HOST || redisConfig.host,
       port: process.env.REDIS_PORT || redisConfig.port,
-      password: process.env.REDIS_PASSWORD || redisConfig.password
+      password: process.env.REDIS_PASSWORD || redisConfig.password,
     });
-    
 
     return new RateLimiterRedis({
       storeClient: redisClient,
       keyPrefix: throttleConfig.prefix,
       points: throttleConfig.limit,
       duration: 60 * 60 * 24 * 30, // Store number for 30 days since first fail
-      blockDuration: throttleConfig.blockDuration
+      blockDuration: throttleConfig.blockDuration,
     });
-  }
+  },
 };
 
 @Module({
@@ -47,17 +46,17 @@ const LoginThrottleFactory = {
       useFactory: () => ({
         secret: process.env.JWT_SECRET || jwtConfig.secret,
         signOptions: {
-          expiresIn: process.env.JWT_EXPIRES_IN || jwtConfig.expiresIn
-        }
-      })
+          expiresIn: process.env.JWT_EXPIRES_IN || jwtConfig.expiresIn,
+        },
+      }),
     }),
     PassportModule.register({
-      defaultStrategy: 'jwt'
+      defaultStrategy: 'jwt',
     }),
     DatabaseModule.register(process.env.REPOSITORY_TYPE),
     MailModule,
     forwardRef(() => RolesModule),
-    RefreshTokenModule
+    RefreshTokenModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -65,14 +64,14 @@ const LoginThrottleFactory = {
     JwtTwoFactorStrategy,
     JwtStrategy,
     // UniqueValidatorPipe,
-    LoginThrottleFactory
+    LoginThrottleFactory,
   ],
   exports: [
     AuthService,
     JwtTwoFactorStrategy,
     JwtStrategy,
     PassportModule,
-    JwtModule
-  ]
+    JwtModule,
+  ],
 })
 export class AuthModule {}

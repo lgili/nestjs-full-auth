@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   ValidatorConstraint,
-  ValidatorConstraintInterface
+  ValidatorConstraintInterface,
 } from 'class-validator';
 
 import { AuthService } from 'src/modules/auth/auth.service';

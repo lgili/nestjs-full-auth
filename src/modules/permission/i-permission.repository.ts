@@ -1,4 +1,4 @@
-import { PermissionEntity } from "./entities/permission.entity";
+import { PermissionEntity } from './entities/permission.entity';
 
 export abstract class IPermissionRepository {
   abstract findById: (id: string) => Promise<PermissionEntity>;

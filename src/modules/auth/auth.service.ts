@@ -2,7 +2,7 @@ import {
   HttpStatus,
   Inject,
   Injectable,
-  UnprocessableEntityException
+  UnprocessableEntityException,
 } from '@nestjs/common';
 
 import { JwtService } from '@nestjs/jwt';
@@ -35,13 +35,15 @@ import { MailJobInterface } from '../mail/interface/mail-job.interface';
 import { RolesService } from '../role/roles.service';
 import { UserLoginDto } from './dto/user-login.dto';
 import { RefreshTokenEntity } from 'src/modules/refresh-token/entities/refresh-token.entity';
-import { RateLimiterRes, RateLimiterStoreAbstract } from 'rate-limiter-flexible';
+import {
+  RateLimiterRes,
+  RateLimiterStoreAbstract,
+} from 'rate-limiter-flexible';
 import { RefreshPaginateFilterDto } from '../refresh-token/dto/refresh-paginate-filter.dto';
 import { RefreshTokenSerializer } from '../refresh-token/serializer/refresh-token.serializer';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ForgetPasswordDto } from './dto/forget-password.dto';
-
 
 const throttleConfig = config.get('throttle.login');
 const jwtConfig = config.get('jwt');
@@ -53,21 +55,19 @@ const isSameSite =
     : process.env.IS_SAME_SITE === 'true';
 const BASE_OPTIONS: SignOptions = {
   issuer: appConfig.appUrl,
-  audience: appConfig.frontendUrl
+  audience: appConfig.frontendUrl,
 };
-
-
 
 @Injectable()
 export class AuthService {
-  constructor(    
+  constructor(
     private readonly userRepository: IUserRepository,
     private readonly jwt: JwtService,
     private readonly roleService: RolesService,
     private readonly mailService: MailService,
     private readonly refreshTokenService: RefreshTokenService,
     @Inject('LOGIN_THROTTLE')
-    private readonly rateLimiter: RateLimiterStoreAbstract
+    private readonly rateLimiter: RateLimiterStoreAbstract,
   ) {}
 
   /**
@@ -83,7 +83,7 @@ export class AuthService {
     subject: string,
     url: string,
     slug: string,
-    linkLabel: string
+    linkLabel: string,
   ) {
     const appConfig = config.get('app');
     const mailData: MailJobInterface = {
@@ -94,8 +94,8 @@ export class AuthService {
         email: user.email,
         link: `<a href="${appConfig.frontendUrl}/${url}">${linkLabel} →</a>`,
         username: user.username,
-        subject
-      }
+        subject,
+      },
     };
     await this.mailService.sendMail(mailData, 'system-mail');
   }
@@ -105,30 +105,29 @@ export class AuthService {
    * @param createUserDto
    */
   async create(
-    createUserDto: DeepPartial<UserEntity>
-  ): Promise<UserSerializer> {    
-    
-    const user = new UserEntity(createUserDto)
-    const token = await this.generateUniqueToken(12);    
-    if(!user.status){
+    createUserDto: DeepPartial<UserEntity>,
+  ): Promise<UserSerializer> {
+    const user = new UserEntity(createUserDto);
+    const token = await this.generateUniqueToken(12);
+    if (!user.status) {
       // normal user creation
-      const normalRole = await this.roleService.findByName('normal')
-      user.roleId = normalRole.id
+      const normalRole = await this.roleService.findByName('normal');
+      user.roleId = normalRole.id;
       const currentDateTime = new Date();
       currentDateTime.setHours(currentDateTime.getHours() + 1);
       user.tokenValidityDate = currentDateTime;
-      user.status = UserStatusEnum.INACTIVE   
+      user.status = UserStatusEnum.INACTIVE;
     }
-    
+
     // just possible create normal user from register
-    user.token = token
+    user.token = token;
     user.salt = await bcrypt.genSalt();
     user.password = await bcrypt.hash(user.password, user.salt);
 
-    const userSaved = await this.userRepository.create(user);    
+    const userSaved = await this.userRepository.create(user);
     // console.log(userSaved)
 
-    const registerProcess = createUserDto.status;    
+    const registerProcess = createUserDto.status;
     const subject = registerProcess ? 'Account created' : 'Set Password';
     const link = registerProcess ? `verify/${token}` : `reset/${token}`;
     const slug = registerProcess ? 'activate-account' : 'new-user-set-password';
@@ -137,7 +136,7 @@ export class AuthService {
     const UserSerializer = this.transform(userSaved);
     await this.sendMailToUser(UserSerializer, subject, link, slug, linkLabel);
 
-    return UserSerializer
+    return UserSerializer;
   }
 
   /**
@@ -147,7 +146,7 @@ export class AuthService {
    */
   async login(
     userLoginDto: UserLoginDto,
-    refreshTokenPayload: Partial<RefreshTokenEntity>
+    refreshTokenPayload: Partial<RefreshTokenEntity>,
   ): Promise<string[]> {
     const usernameIPkey = `${userLoginDto.username}_${refreshTokenPayload.ip}`;
     const resUsernameAndIP = await this.rateLimiter.get(usernameIPkey);
@@ -163,35 +162,35 @@ export class AuthService {
       throw new CustomHttpException(
         `tooManyRequest-{"second":"${String(retrySecs)}"}`,
         HttpStatus.TOO_MANY_REQUESTS,
-        StatusCodesList.TooManyTries
+        StatusCodesList.TooManyTries,
       );
     }
 
     const [user, error, code] = await this.verifyUser(userLoginDto);
-    
+
     if (!user) {
       const [result, throttleError] = await this.limitConsumerPromiseHandler(
-        usernameIPkey
+        usernameIPkey,
       );
       if (!result) {
         throw new CustomHttpException(
           `tooManyRequest-{"second":${String(
-            Math.round(throttleError.msBeforeNext / 1000) || 1
+            Math.round(throttleError.msBeforeNext / 1000) || 1,
           )}}`,
           HttpStatus.TOO_MANY_REQUESTS,
-          StatusCodesList.TooManyTries
+          StatusCodesList.TooManyTries,
         );
       }
       throw new UnauthorizedException(error, code);
     }
-    const userSerializer = this.transform(user)
-    
+    const userSerializer = this.transform(user);
+
     const accessToken = await this.generateAccessToken(userSerializer);
     let refreshToken = null;
     if (userLoginDto.remember) {
       refreshToken = await this.refreshTokenService.generateRefreshToken(
         userSerializer,
-        refreshTokenPayload
+        refreshTokenPayload,
       );
     }
     await this.rateLimiter.delete(usernameIPkey);
@@ -205,7 +204,7 @@ export class AuthService {
    */
   async update(
     id: string,
-    updateUserDto: Partial<UserEntity>
+    updateUserDto: Partial<UserEntity>,
   ): Promise<UserSerializer> {
     // const user = await this.userRepository.get(id, [], {
     //   groups: [
@@ -213,32 +212,36 @@ export class AuthService {
     //     ...adminUserGroupsForSerializing
     //   ]
     // });
-    const user = await this.userRepository.findById(id)      
+    const user = await this.userRepository.findById(id);
     const errorPayload: ValidationPayloadInterface[] = [];
 
-    if(updateUserDto.email) {
-    const newEmail = await this.userRepository.findByEmail(updateUserDto.email)
-      if(newEmail){        
+    if (updateUserDto.email) {
+      const newEmail = await this.userRepository.findByEmail(
+        updateUserDto.email,
+      );
+      if (newEmail) {
         errorPayload.push({
           property: 'email',
           constraints: {
-            unique: 'already taken'
-          }
+            unique: 'already taken',
+          },
         });
       }
     }
-    if(updateUserDto.username){
-      const newUsername = await this.userRepository.findByUsername(updateUserDto.username)
-      if(newUsername){        
+    if (updateUserDto.username) {
+      const newUsername = await this.userRepository.findByUsername(
+        updateUserDto.username,
+      );
+      if (newUsername) {
         errorPayload.push({
           property: 'username',
           constraints: {
-            unique: 'already taken'
-          }
+            unique: 'already taken',
+          },
         });
       }
     }
-    
+
     if (Object.keys(errorPayload).length > 0) {
       throw new UnprocessableEntityException(errorPayload);
     }
@@ -248,10 +251,10 @@ export class AuthService {
         unlinkSync(`public/images/profile/${user.avatar}`);
       }
     }
-    user.update(updateUserDto)
+    user.update(updateUserDto);
     const userSaved = await this.userRepository.update(user);
-        
-    return this.transform(userSaved)
+
+    return this.transform(userSaved);
   }
 
   /**
@@ -259,19 +262,19 @@ export class AuthService {
    * @param userLoginDto
    */
   async verifyUser(
-    userLoginDto: UserLoginDto
+    userLoginDto: UserLoginDto,
   ): Promise<[user: UserEntity, error: string, code: number]> {
     const { username, password } = userLoginDto;
     const user = await this.userRepository.findByUsername(username);
-        
-    if(user) {
+
+    if (user) {
       const hash = await bcrypt.hash(password, user.salt);
-      if (user && (hash === user.password)) {        
+      if (user && hash === user.password) {
         if (user.status !== UserStatusEnum.ACTIVE) {
           return [
             null,
             ExceptionTitleList.UserInactive,
-            StatusCodesList.UserInactive
+            StatusCodesList.UserInactive,
           ];
         }
         return [user, null, null];
@@ -280,7 +283,7 @@ export class AuthService {
     return [
       null,
       ExceptionTitleList.InvalidCredentials,
-      StatusCodesList.InvalidCredentials
+      StatusCodesList.InvalidCredentials,
     ];
   }
 
@@ -289,14 +292,14 @@ export class AuthService {
    * @param token
    */
   async activateAccount(token: string): Promise<void> {
-    const user = await this.userRepository.findByToken(token);    
+    const user = await this.userRepository.findByToken(token);
     if (!user) {
       throw new NotFoundException();
     }
     if (user.status !== UserStatusEnum.INACTIVE) {
       throw new ForbiddenException(
         ExceptionTitleList.UserInactive,
-        StatusCodesList.UserInactive
+        StatusCodesList.UserInactive,
       );
     }
     user.status = UserStatusEnum.ACTIVE;
@@ -311,7 +314,7 @@ export class AuthService {
    * @param usernameIPkey
    */
   async limitConsumerPromiseHandler(
-    usernameIPkey: string
+    usernameIPkey: string,
   ): Promise<[RateLimiterRes, RateLimiterRes]> {
     return new Promise((resolve) => {
       this.rateLimiter
@@ -324,7 +327,7 @@ export class AuthService {
         });
     });
   }
-  
+
   /**
    * get user profile
    * @param user
@@ -334,7 +337,7 @@ export class AuthService {
     //   groups: ownerUserGroupsForSerializing
     // });
     const userSaved = await this.userRepository.findById(user.id);
-    return this.transform(userSaved)
+    return this.transform(userSaved);
   }
 
   /**
@@ -349,7 +352,7 @@ export class AuthService {
     //   ]
     // });
     const userSaved = await this.userRepository.findById(id);
-    return this.transform(userSaved)
+    return this.transform(userSaved);
   }
 
   /**
@@ -357,7 +360,7 @@ export class AuthService {
    * @param userSearchFilterDto
    */
   async findAll(
-    userSearchFilterDto: UserSearchFilterDto
+    userSearchFilterDto: UserSearchFilterDto,
   ): Promise<UserSerializer[]> {
     // return this.userRepository.paginate(
     //   userSearchFilterDto,
@@ -371,9 +374,8 @@ export class AuthService {
     //     ]
     //   }
     // );
-    const users = await this.userRepository.findAll()
-    return this.transformMany(users)
-
+    const users = await this.userRepository.findAll();
+    return this.transformMany(users);
   }
 
   /**
@@ -382,11 +384,11 @@ export class AuthService {
    */
   async generateUniqueToken(length: number): Promise<string> {
     const token = this.generateRandomCode(length);
-    
-    const tokenCount = await this.userRepository.findByToken(token)
-    
+
+    const tokenCount = await this.userRepository.findByToken(token);
+
     // recursively find unique tokens
-    if (tokenCount) {      
+    if (tokenCount) {
       await this.generateUniqueToken(length);
     }
     return token;
@@ -400,7 +402,7 @@ export class AuthService {
     // ignore exception because anyway we are going invalidate cookies
     try {
       const { token } = await this.refreshTokenService.resolveRefreshToken(
-        encoded
+        encoded,
       );
       if (token) {
         token.isRevoked = true;
@@ -410,11 +412,10 @@ export class AuthService {
       throw new CustomHttpException(
         ExceptionTitleList.InvalidRefreshToken,
         HttpStatus.PRECONDITION_FAILED,
-        StatusCodesList.InvalidRefreshToken
+        StatusCodesList.InvalidRefreshToken,
       );
     }
   }
-
 
   /**
    * forget password and send reset code by email
@@ -423,7 +424,7 @@ export class AuthService {
   async forgotPassword(forgetPasswordDto: ForgetPasswordDto): Promise<void> {
     const { email } = forgetPasswordDto;
 
-    const user = await this.userRepository.findByEmail(email)     
+    const user = await this.userRepository.findByEmail(email);
     if (!user) {
       return;
     }
@@ -433,37 +434,35 @@ export class AuthService {
     currentDateTime.setHours(currentDateTime.getHours() + 1);
     user.tokenValidityDate = currentDateTime;
     user.skipHashPassword = true;
-    await this.userRepository.update(user)
-    
+    await this.userRepository.update(user);
+
     const subject = 'Reset Password';
-    const userSerializer = this.transform(user)
+    const userSerializer = this.transform(user);
     await this.sendMailToUser(
       userSerializer,
       subject,
       `reset/${token}`,
       'reset-password',
-      subject
+      subject,
     );
   }
-  
+
   /**
    * reset password using token
    * @param resetPasswordDto
    */
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
     const { password } = resetPasswordDto;
-    const user = await this.getUserForResetPassword(
-      resetPasswordDto
-    );
+    const user = await this.getUserForResetPassword(resetPasswordDto);
     if (!user) {
       throw new NotFoundException();
     }
     user.token = await this.generateUniqueToken(6);
     user.password = await bcrypt.hash(password, user.salt);
     // user.password = password;
-    await this.userRepository.update(user)
+    await this.userRepository.update(user);
   }
-  
+
   /**
    * change password of logged in user
    * @param user
@@ -471,31 +470,30 @@ export class AuthService {
    */
   async changePassword(
     user: UserEntity,
-    changePasswordDto: ChangePasswordDto
+    changePasswordDto: ChangePasswordDto,
   ): Promise<void> {
     const { oldPassword, password } = changePasswordDto;
     const hash = await bcrypt.hash(oldPassword, user.salt);
-    console.log(oldPassword)
-    console.log(password)
-    console.log(hash)
-    console.log(user.password)
+    console.log(oldPassword);
+    console.log(password);
+    console.log(hash);
+    console.log(user.password);
     // const checkOldPwdMatches = await user.validatePassword(oldPassword);
     let checkOldPwdMatches = false;
-    if(hash === user.password){
-      checkOldPwdMatches =  true
+    if (hash === user.password) {
+      checkOldPwdMatches = true;
     }
     // FIXME
     if (!checkOldPwdMatches) {
       throw new CustomHttpException(
         ExceptionTitleList.IncorrectOldPassword,
         HttpStatus.PRECONDITION_FAILED,
-        StatusCodesList.IncorrectOldPassword
+        StatusCodesList.IncorrectOldPassword,
       );
     }
     user.password = await bcrypt.hash(password, user.salt);
-    
-    await this.userRepository.update(user)
-    
+
+    await this.userRepository.update(user);
   }
 
   /**
@@ -509,7 +507,7 @@ export class AuthService {
     length: number,
     uppercase = true,
     lowercase = true,
-    numerical = true
+    numerical = true,
   ): string {
     let result = '';
     const lowerCaseAlphabets = 'abcdefghijklmnopqrstuvwxyz';
@@ -539,15 +537,15 @@ export class AuthService {
    */
   public async generateAccessToken(
     user: UserSerializer,
-    isTwoFAAuthenticated = false
+    isTwoFAAuthenticated = false,
   ): Promise<string> {
     const opts: SignOptions = {
       ...BASE_OPTIONS,
-      subject: String(user.id)
+      subject: String(user.id),
     };
     return this.jwt.signAsync({
       ...opts,
-      isTwoFAAuthenticated
+      isTwoFAAuthenticated,
     });
   }
 
@@ -564,7 +562,7 @@ export class AuthService {
       }`,
       `ExpiresIn=; Path=/; Max-Age=0; ${
         !isSameSite ? 'SameSite=None; Secure;' : ''
-      }`
+      }`,
     ];
   }
 
@@ -577,7 +575,7 @@ export class AuthService {
     let tokenCookies = [
       `Authentication=${accessToken}; HttpOnly; Path=/; ${
         !isSameSite ? 'SameSite=None; Secure;' : ''
-      } Max-Age=${jwtConfig.cookieExpiresIn}`
+      } Max-Age=${jwtConfig.cookieExpiresIn}`,
     ];
     if (refreshToken) {
       const expiration = new Date();
@@ -588,12 +586,11 @@ export class AuthService {
         } Max-Age=${jwtConfig.cookieExpiresIn}`,
         `ExpiresIn=${expiration}; Path=/; ${
           !isSameSite ? 'SameSite=None; Secure;' : ''
-        } Max-Age=${jwtConfig.cookieExpiresIn}`
+        } Max-Age=${jwtConfig.cookieExpiresIn}`,
       ]);
     }
     return tokenCookies;
   }
-
 
   /**
    * Create access token from refresh token
@@ -602,11 +599,11 @@ export class AuthService {
   async createAccessTokenFromRefreshToken(refreshToken: string) {
     const { token } =
       await this.refreshTokenService.createAccessTokenFromRefreshToken(
-        refreshToken
+        refreshToken,
       );
     return this.buildResponsePayload(token);
   }
-  
+
   /**
    * get active refresh token list for user
    * @param userId
@@ -614,11 +611,11 @@ export class AuthService {
    **/
   activeRefreshTokenList(
     userId: string,
-    filter: RefreshPaginateFilterDto
+    filter: RefreshPaginateFilterDto,
   ): Promise<RefreshTokenSerializer[]> {
     return this.refreshTokenService.getRefreshTokenByUserId(userId, filter);
   }
-  
+
   /**
    * revoke token by id
    * @param id
@@ -652,7 +649,7 @@ export class AuthService {
   async turnOnTwoFactorAuthentication(
     user: UserEntity,
     isTwoFAEnabled = true,
-    qrDataUri: string
+    qrDataUri: string,
   ) {
     if (isTwoFAEnabled) {
       const subject = 'Activate Two Factor Authentication';
@@ -664,15 +661,15 @@ export class AuthService {
           email: user.email,
           qrcode: 'cid:2fa-qrcode',
           username: user.username,
-          subject
+          subject,
         },
         attachments: [
           {
             filename: '2fa-qrcode.png',
             path: qrDataUri,
-            cid: '2fa-qrcode'
-          }
-        ]
+            cid: '2fa-qrcode',
+          },
+        ],
       };
       await this.mailService.sendMail(mailData, 'system-mail');
     }
@@ -680,13 +677,12 @@ export class AuthService {
     return this.userRepository.update(user);
   }
 
-
   /**
    * Get user entity for reset password
    * @param resetPasswordDto
    */
   async getUserForResetPassword(
-    resetPasswordDto: ResetPasswordDto
+    resetPasswordDto: ResetPasswordDto,
   ): Promise<UserEntity> {
     const { token } = resetPasswordDto;
     // const query = this.createQueryBuilder('user');
@@ -695,36 +691,33 @@ export class AuthService {
     //   date: new Date()
     // });
     // return query.getOne();
-    
-    const user = await this.userRepository.findByToken(token)
-    if(user && user.tokenValidityDate > new Date()){
-      return user
+
+    const user = await this.userRepository.findByToken(token);
+    if (user && user.tokenValidityDate > new Date()) {
+      return user;
     }
-    return null
+    return null;
   }
 
-    /**
+  /**
    * transform role entity
    * @param model
    * @param transformOption
    */
-    transform(model: UserEntity, transformOption = {}): UserSerializer {
-      return plainToInstance(
-        UserSerializer,
-        instanceToPlain(model, transformOption),
-        transformOption
-      );
-    }
-  
-    
-    
-    /**
-     * transform many roles collection
-     * @param models
-     * @param transformOption
-     */
-    transformMany(models: UserEntity[], transformOption = {}): UserSerializer[] {
-      return models.map((model) => this.transform(model, transformOption));
-    }
+  transform(model: UserEntity, transformOption = {}): UserSerializer {
+    return plainToInstance(
+      UserSerializer,
+      instanceToPlain(model, transformOption),
+      transformOption,
+    );
+  }
 
+  /**
+   * transform many roles collection
+   * @param models
+   * @param transformOption
+   */
+  transformMany(models: UserEntity[], transformOption = {}): UserSerializer[] {
+    return models.map((model) => this.transform(model, transformOption));
+  }
 }

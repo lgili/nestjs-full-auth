@@ -7,7 +7,7 @@ export const basicFieldGroupsForSerializing: string[] = ['basic'];
 
 export class PermissionSerializer extends ModelSerializer {
   @Expose({
-    groups: basicFieldGroupsForSerializing
+    groups: basicFieldGroupsForSerializing,
   })
   id: string;
 
@@ -16,7 +16,7 @@ export class PermissionSerializer extends ModelSerializer {
 
   @ApiProperty()
   @Expose({
-    groups: basicFieldGroupsForSerializing
+    groups: basicFieldGroupsForSerializing,
   })
   description: string;
 
@@ -28,19 +28,19 @@ export class PermissionSerializer extends ModelSerializer {
 
   @ApiProperty()
   @Expose({
-    groups: basicFieldGroupsForSerializing
+    groups: basicFieldGroupsForSerializing,
   })
   isDefault: boolean;
 
   @ApiPropertyOptional()
   @Expose({
-    groups: basicFieldGroupsForSerializing
+    groups: basicFieldGroupsForSerializing,
   })
   createdAt: Date;
 
   @ApiPropertyOptional()
   @Expose({
-    groups: basicFieldGroupsForSerializing
+    groups: basicFieldGroupsForSerializing,
   })
   updatedAt: Date;
 }

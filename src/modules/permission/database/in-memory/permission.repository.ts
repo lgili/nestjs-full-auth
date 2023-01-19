@@ -5,11 +5,9 @@ import { RoleEntity } from 'src/modules/role/entities/role.entity';
 import { IPermissionRepository } from '../../i-permission.repository';
 import { PermissionSerializer } from '../../serializer/permission.serializer';
 
-
 @Injectable()
 export class PermissionInMemoryRepository implements IPermissionRepository {
   private permissions: PermissionEntity[] = [];
-
 
   async findById(id: string): Promise<PermissionEntity> {
     const userIndex = this.permissions.findIndex((userItem) => {
@@ -20,16 +18,16 @@ export class PermissionInMemoryRepository implements IPermissionRepository {
   }
 
   async findSeveralById(ids: string[]): Promise<PermissionEntity[]> {
-    const permissions :PermissionEntity[] = []
+    const permissions: PermissionEntity[] = [];
     ids.forEach(async (id) => {
       const userIndex = this.permissions.findIndex((userItem) => {
         return userItem.id === id;
       });
 
-      permissions.push(this.permissions[userIndex])
-    })
-    
-    return permissions;    
+      permissions.push(this.permissions[userIndex]);
+    });
+
+    return permissions;
   }
 
   async findByName(name: string): Promise<PermissionEntity> {
@@ -66,6 +64,4 @@ export class PermissionInMemoryRepository implements IPermissionRepository {
 
     this.permissions.splice(permissionIndex, 1);
   }
-
-    
 }

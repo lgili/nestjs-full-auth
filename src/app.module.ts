@@ -12,10 +12,9 @@ import {
   HeaderResolver,
   I18nJsonParser,
   I18nModule,
-  QueryResolver
+  QueryResolver,
 } from 'nestjs-i18n';
 import { WinstonModule } from 'nest-winston';
-
 
 import * as throttleConfig from 'src/config/throttle-config';
 import { I18nExceptionFilterPipe } from 'src/common/pipes/i18n-exception-filter.pipe';
@@ -35,33 +34,32 @@ const appConfig = config.get('app');
 
 @Module({
   imports: [
-    
     WinstonModule.forRoot(winstonConfig),
     ThrottlerModule.forRootAsync({
-      useFactory: () => throttleConfig
-    }),    
+      useFactory: () => throttleConfig,
+    }),
     I18nModule.forRootAsync({
       useFactory: () => ({
         fallbackLanguage: appConfig.fallbackLanguage,
         parserOptions: {
           path: path.join(__dirname, '../i18n/'),
-          watch: true
-        }
+          watch: true,
+        },
       }),
       parser: I18nJsonParser,
       resolvers: [
         {
           use: QueryResolver,
-          options: ['lang', 'locale', 'l']
+          options: ['lang', 'locale', 'l'],
         },
         new HeaderResolver(['x-custom-lang']),
         new CookieResolver(['lang', 'locale', 'l']),
         AcceptLanguageResolver,
-      ]
+      ],
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
-      exclude: ['/api*']
+      exclude: ['/api*'],
     }),
     InfraModule,
     AuthModule,
@@ -69,23 +67,22 @@ const appConfig = config.get('app');
     EmailTemplateModule,
     MailModule,
     RefreshTokenModule,
-    TwofaModule
-    
+    TwofaModule,
   ],
   providers: [
     {
       provide: APP_PIPE,
-      useClass: CustomValidationPipe
+      useClass: CustomValidationPipe,
     },
     {
       provide: APP_GUARD,
-      useClass: CustomThrottlerGuard
+      useClass: CustomThrottlerGuard,
     },
     {
       provide: APP_FILTER,
-      useClass: I18nExceptionFilterPipe
-    }
+      useClass: I18nExceptionFilterPipe,
+    },
   ],
-  controllers: [AppController]
+  controllers: [AppController],
 })
 export class AppModule {}

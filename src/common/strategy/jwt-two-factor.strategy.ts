@@ -12,23 +12,19 @@ import { JwtPayloadDto } from 'src/modules/auth/dto/jwt-payload.dto';
 import { UserEntity } from 'src/modules/auth/entity/user.entity';
 import { IUserRepository } from 'src/modules/auth/i-user.repository';
 
-
 @Injectable()
 export class JwtTwoFactorStrategy extends PassportStrategy(
   Strategy,
-  'jwt-two-factor'
+  'jwt-two-factor',
 ) {
-  constructor(
-    
-    private userRepository: IUserRepository
-  ) {
+  constructor(private userRepository: IUserRepository) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request: Request) => {
           return request?.cookies?.Authentication;
-        }
+        },
       ]),
-      secretOrKey: process.env.JWT_SECRET || config.get('jwt.secret')
+      secretOrKey: process.env.JWT_SECRET || config.get('jwt.secret'),
     });
   }
 
@@ -38,7 +34,7 @@ export class JwtTwoFactorStrategy extends PassportStrategy(
     //   relations: ['role', 'role.permission']
     // });
     // FIXME:
-    const user = await this.userRepository.findById(subject)
+    const user = await this.userRepository.findById(subject);
     if (!user.isTwoFAEnabled) {
       return user;
     }
@@ -48,7 +44,7 @@ export class JwtTwoFactorStrategy extends PassportStrategy(
     throw new CustomHttpException(
       'otpRequired',
       HttpStatus.FORBIDDEN,
-      StatusCodesList.OtpRequired
+      StatusCodesList.OtpRequired,
     );
   }
 }

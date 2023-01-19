@@ -1,12 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { User as PersistenceUser } from '@prisma/client';
-import { classToPlain, instanceToPlain, plainToClass, plainToInstance } from 'class-transformer';
+import {
+  classToPlain,
+  instanceToPlain,
+  plainToClass,
+  plainToInstance,
+} from 'class-transformer';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import { IUserRepository } from 'src/modules/auth/i-user.repository';
 import { UserEntity } from 'src/modules/auth/entity/user.entity';
 import { UserSerializer } from '../../serializer/user.serializer';
-
-
 
 @Injectable()
 export class UserPrismaRepository implements IUserRepository {
@@ -18,19 +21,19 @@ export class UserPrismaRepository implements IUserRepository {
       where: {
         id,
       },
-      include:{
-        role : {
+      include: {
+        role: {
           include: {
-            permissions: true
-          }
-        }     
-      }
+            permissions: true,
+          },
+        },
+      },
     });
 
     if (!user) {
       return null;
     }
-    
+
     return this.toDomain(user);
   }
 
@@ -39,13 +42,13 @@ export class UserPrismaRepository implements IUserRepository {
       where: {
         email,
       },
-      include:{
-        role : {
+      include: {
+        role: {
           include: {
-            permissions: true
-          }
-        }     
-      }
+            permissions: true,
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -60,13 +63,13 @@ export class UserPrismaRepository implements IUserRepository {
       where: {
         username,
       },
-      include:{
-        role : {
+      include: {
+        role: {
           include: {
-            permissions: true
-          }
-        }     
-      }
+            permissions: true,
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -103,10 +106,9 @@ export class UserPrismaRepository implements IUserRepository {
   async create(user: UserEntity): Promise<UserEntity> {
     try {
       const data = this.toPersistence(user);
-      const userSaved = await this.prismaService.user.create(
-        {
-           data
-        });
+      const userSaved = await this.prismaService.user.create({
+        data,
+      });
       return this.toDomain(userSaved);
     } catch (error) {
       this.logger.error(error);
@@ -140,11 +142,10 @@ export class UserPrismaRepository implements IUserRepository {
     return plainToInstance(
       UserEntity,
       instanceToPlain(model, transformOption),
-      transformOption
+      transformOption,
     );
   }
 
-  
   /**
    * toDomain users collection
    * @param models
@@ -154,23 +155,19 @@ export class UserPrismaRepository implements IUserRepository {
     return models.map((model) => this.toDomain(model, transformOption));
   }
 
-
   toPersistence(user: UserEntity) {
-    
-    const dd = instanceToPlain(
-      user,      
-    )    
+    const dd = instanceToPlain(user);
     return {
       id: user.id,
       name: user.name,
       username: user.username,
       password: user.password,
-      email: user.email,    
+      email: user.email,
       status: user.status,
       salt: user.salt,
       token: user.token,
       tokenValidityDate: user.tokenValidityDate,
-      roleId: user.roleId             
+      roleId: user.roleId,
     };
   }
 }

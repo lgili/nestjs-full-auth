@@ -16,7 +16,7 @@ export enum MethodList {
   PUT = 'put',
   DELETE = 'delete',
   ANY = 'any',
-  OPTIONS = 'options'
+  OPTIONS = 'options',
 }
 
 export interface RoutePayloadInterface {
@@ -54,75 +54,75 @@ export const PermissionConfiguration: PermissionConfigInterface = {
     {
       id: 1,
       name: 'superuser',
-      description: 'superuser of the system'
+      description: 'superuser of the system',
     },
     {
       id: 2,
       name: 'normal',
-      description: 'normal user of the system'
-    }
+      description: 'normal user of the system',
+    },
   ],
   defaultRoutes: [
     {
       path: '/api/v1/check',
-      method: MethodList.GET
+      method: MethodList.GET,
     },
     {
       path: '/api/v1/auth/register',
-      method: MethodList.POST
+      method: MethodList.POST,
     },
     {
       path: '/api/v1/auth/login',
-      method: MethodList.POST
+      method: MethodList.POST,
     },
     {
       path: '/api/v1/auth/profile',
-      method: MethodList.GET
+      method: MethodList.GET,
     },
     {
       path: '/api/v1/auth/activate-account',
-      method: MethodList.GET
+      method: MethodList.GET,
     },
     {
       path: '/api/v1/auth/forgot-password',
-      method: MethodList.PUT
+      method: MethodList.PUT,
     },
     {
       path: '/api/v1/auth/reset-password',
-      method: MethodList.PUT
+      method: MethodList.PUT,
     },
     {
       path: '/api/v1/auth/change-password',
-      method: MethodList.PUT
+      method: MethodList.PUT,
     },
     {
       path: '/api/v1/auth/profile',
-      method: MethodList.PUT
+      method: MethodList.PUT,
     },
     {
       path: '/api/v1/revoke/:id',
-      method: MethodList.PUT
+      method: MethodList.PUT,
     },
     {
       path: '/api/v1/auth/token-info',
-      method: MethodList.GET
+      method: MethodList.GET,
     },
     {
       path: '/api/v1/dashboard/users',
-      method: MethodList.GET
+      method: MethodList.GET,
     },
     {
       path: '/api/v1/dashboard/os',
-      method: MethodList.GET
+      method: MethodList.GET,
     },
     {
       path: '/api/v1/dashboard/browser',
-      method: MethodList.GET
+      method: MethodList.GET,
     },
     {
       path: '/api/v1/logout',
-      method: MethodList.POST
-    }
+      method: MethodList.POST,
+    },
   ],
   modules: [
     {
@@ -135,38 +135,38 @@ export const PermissionConfiguration: PermissionConfigInterface = {
           route: [
             {
               path: '/api/v1/users',
-              method: MethodList.GET
-            }
-          ]
+              method: MethodList.GET,
+            },
+          ],
         },
         {
           name: 'Store new user',
           route: [
             {
               path: '/api/v1/users',
-              method: MethodList.POST
-            }
-          ]
+              method: MethodList.POST,
+            },
+          ],
         },
         {
           name: 'Update user by id',
           route: [
             {
               path: '/api/v1/users/:id',
-              method: MethodList.PUT
-            }
-          ]
+              method: MethodList.PUT,
+            },
+          ],
         },
         {
           name: 'Get user by id',
           route: [
             {
               path: '/api/v1/users/:id',
-              method: MethodList.GET
-            }
-          ]
-        }
-      ]
+              method: MethodList.GET,
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'Role management',
@@ -178,47 +178,47 @@ export const PermissionConfiguration: PermissionConfigInterface = {
           route: [
             {
               path: '/api/v1/roles',
-              method: MethodList.GET
-            }
-          ]
+              method: MethodList.GET,
+            },
+          ],
         },
         {
           name: 'View role by id',
           route: [
             {
               path: '/api/v1/roles/:id',
-              method: MethodList.GET
-            }
-          ]
+              method: MethodList.GET,
+            },
+          ],
         },
         {
           name: 'Store new role',
           route: [
             {
               path: '/api/v1/roles',
-              method: MethodList.POST
-            }
-          ]
+              method: MethodList.POST,
+            },
+          ],
         },
         {
           name: 'Update role by id',
           route: [
             {
               path: '/api/v1/roles/:id',
-              method: MethodList.PUT
-            }
-          ]
+              method: MethodList.PUT,
+            },
+          ],
         },
         {
           name: 'Delete role by id',
           route: [
             {
               path: '/api/v1/roles/:id',
-              method: MethodList.DELETE
-            }
-          ]
-        }
-      ]
+              method: MethodList.DELETE,
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'Permission management',
@@ -230,56 +230,56 @@ export const PermissionConfiguration: PermissionConfigInterface = {
           route: [
             {
               path: '/api/v1/permissions',
-              method: MethodList.GET
-            }
-          ]
+              method: MethodList.GET,
+            },
+          ],
         },
         {
           name: 'Sync permission from config',
           route: [
             {
               path: '/api/v1/permissions/sync',
-              method: MethodList.POST
-            }
-          ]
+              method: MethodList.POST,
+            },
+          ],
         },
         {
           name: 'View permission by id',
           route: [
             {
               path: '/api/v1/permissions/:id',
-              method: MethodList.GET
-            }
-          ]
+              method: MethodList.GET,
+            },
+          ],
         },
         {
           name: 'Store new permission',
           route: [
             {
               path: '/api/v1/permissions',
-              method: MethodList.POST
-            }
-          ]
+              method: MethodList.POST,
+            },
+          ],
         },
         {
           name: 'Update permission by id',
           route: [
             {
               path: '/api/v1/permissions/:id',
-              method: MethodList.PUT
-            }
-          ]
+              method: MethodList.PUT,
+            },
+          ],
         },
         {
           name: 'Delete permission by id',
           route: [
             {
               path: '/api/v1/permissions/:id',
-              method: MethodList.DELETE
-            }
-          ]
-        }
-      ]
+              method: MethodList.DELETE,
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'Email Templates',
@@ -291,47 +291,47 @@ export const PermissionConfiguration: PermissionConfigInterface = {
           route: [
             {
               path: '/api/v1/email-templates',
-              method: MethodList.GET
-            }
-          ]
+              method: MethodList.GET,
+            },
+          ],
         },
         {
           name: 'View email templates by id',
           route: [
             {
               path: '/api/v1/email-templates/:id',
-              method: MethodList.GET
-            }
-          ]
+              method: MethodList.GET,
+            },
+          ],
         },
         {
           name: 'Store new email templates',
           route: [
             {
               path: '/api/v1/email-templates',
-              method: MethodList.POST
-            }
-          ]
+              method: MethodList.POST,
+            },
+          ],
         },
         {
           name: 'Update email templates by id',
           route: [
             {
               path: '/api/v1/email-templates/:id',
-              method: MethodList.PUT
-            }
-          ]
+              method: MethodList.PUT,
+            },
+          ],
         },
         {
           name: 'Delete email templates by id',
           route: [
             {
               path: '/api/v1/email-templates/:id',
-              method: MethodList.DELETE
-            }
-          ]
-        }
-      ]
-    }
-  ]
+              method: MethodList.DELETE,
+            },
+          ],
+        },
+      ],
+    },
+  ],
 };

@@ -1,7 +1,6 @@
 import { IEmailTemplateRepository } from '../../i-email-template.repository';
 import { EmailTemplatePrismaRepository } from './email-template.repository';
 
-
 export default [
   // Repository
   {

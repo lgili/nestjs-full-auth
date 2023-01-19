@@ -25,17 +25,16 @@ const appConfig = config.get('app');
 const tokenConfig = config.get('jwt');
 const BASE_OPTIONS: SignOptions = {
   issuer: appConfig.appUrl,
-  audience: appConfig.frontendUrl
+  audience: appConfig.frontendUrl,
 };
 
 @Injectable()
 export class RefreshTokenService {
   constructor(
-    
     private readonly refreshTokenRepository: IRefreshTokenRepository,
     @Inject(forwardRef(() => AuthService))
     private readonly authService: AuthService,
-    private readonly jwt: JwtService
+    private readonly jwt: JwtService,
   ) {}
 
   /**
@@ -45,30 +44,30 @@ export class RefreshTokenService {
    */
   public async generateRefreshToken(
     user: UserSerializer,
-    refreshToken: Partial<RefreshTokenEntity>
+    refreshToken: Partial<RefreshTokenEntity>,
   ): Promise<string> {
-    const token = new RefreshTokenEntity(refreshToken)
-    token.userId = user.id
+    const token = new RefreshTokenEntity(refreshToken);
+    token.userId = user.id;
     token.isRevoked = false;
     const expiration = new Date();
     expiration.setSeconds(
-      expiration.getSeconds() + tokenConfig.refreshExpiresIn
+      expiration.getSeconds() + tokenConfig.refreshExpiresIn,
     );
     token.expires = expiration;
-    console.log(token)
+    console.log(token);
 
     const tokenSaved = await this.refreshTokenRepository.create(token);
     const opts: SignOptions = {
       ...BASE_OPTIONS,
       subject: String(user.id),
-      jwtid: String(tokenSaved.id)
+      jwtid: String(tokenSaved.id),
     };
 
     return this.jwt.signAsync(
       { ...opts },
       {
-        expiresIn: tokenConfig.refreshExpiresIn
-      }
+        expiresIn: tokenConfig.refreshExpiresIn,
+      },
     );
   }
 
@@ -86,7 +85,7 @@ export class RefreshTokenService {
       throw new CustomHttpException(
         ExceptionTitleList.NotFound,
         HttpStatus.NOT_FOUND,
-        StatusCodesList.NotFound
+        StatusCodesList.NotFound,
       );
     }
 
@@ -94,7 +93,7 @@ export class RefreshTokenService {
       throw new CustomHttpException(
         ExceptionTitleList.InvalidRefreshToken,
         HttpStatus.BAD_REQUEST,
-        StatusCodesList.InvalidRefreshToken
+        StatusCodesList.InvalidRefreshToken,
       );
     }
 
@@ -104,13 +103,13 @@ export class RefreshTokenService {
       throw new CustomHttpException(
         ExceptionTitleList.InvalidRefreshToken,
         HttpStatus.BAD_REQUEST,
-        StatusCodesList.InvalidRefreshToken
+        StatusCodesList.InvalidRefreshToken,
       );
     }
 
     return {
       user,
-      token
+      token,
     };
   }
 
@@ -126,7 +125,7 @@ export class RefreshTokenService {
     const token = await this.authService.generateAccessToken(user);
     return {
       user,
-      token
+      token,
     };
   }
 
@@ -142,13 +141,13 @@ export class RefreshTokenService {
         throw new CustomHttpException(
           ExceptionTitleList.RefreshTokenExpired,
           HttpStatus.BAD_REQUEST,
-          StatusCodesList.RefreshTokenExpired
+          StatusCodesList.RefreshTokenExpired,
         );
       } else {
         throw new CustomHttpException(
           ExceptionTitleList.InvalidRefreshToken,
           HttpStatus.BAD_REQUEST,
-          StatusCodesList.InvalidRefreshToken
+          StatusCodesList.InvalidRefreshToken,
         );
       }
     }
@@ -159,7 +158,7 @@ export class RefreshTokenService {
    * @param payload
    */
   async getUserFromRefreshTokenPayload(
-    payload: RefreshTokenInterface
+    payload: RefreshTokenInterface,
   ): Promise<UserSerializer> {
     const subId = payload.subject;
 
@@ -167,7 +166,7 @@ export class RefreshTokenService {
       throw new CustomHttpException(
         ExceptionTitleList.InvalidRefreshToken,
         HttpStatus.BAD_REQUEST,
-        StatusCodesList.InvalidRefreshToken
+        StatusCodesList.InvalidRefreshToken,
       );
     }
 
@@ -179,7 +178,7 @@ export class RefreshTokenService {
    * @param payload
    */
   async getStoredTokenFromRefreshTokenPayload(
-    payload: RefreshTokenInterface
+    payload: RefreshTokenInterface,
   ): Promise<RefreshTokenEntity | null> {
     const tokenId = payload.jwtid;
 
@@ -187,15 +186,14 @@ export class RefreshTokenService {
       throw new CustomHttpException(
         ExceptionTitleList.InvalidRefreshToken,
         HttpStatus.BAD_REQUEST,
-        StatusCodesList.InvalidRefreshToken
+        StatusCodesList.InvalidRefreshToken,
       );
     }
 
     return this.refreshTokenRepository.findById(tokenId.toString());
   }
 
-
-  async updateRefreshToken(token: RefreshTokenEntity){
+  async updateRefreshToken(token: RefreshTokenEntity) {
     return await this.refreshTokenRepository.update(token);
   }
 
@@ -205,11 +203,10 @@ export class RefreshTokenService {
    */
   async getRefreshTokenByUserId(
     userId: string,
-    filter: RefreshPaginateFilterDto
+    filter: RefreshPaginateFilterDto,
   ): Promise<RefreshTokenSerializer[]> {
+    const tokens = await this.refreshTokenRepository.findByUser(userId);
 
-    const tokens = await this.refreshTokenRepository.findByUser(userId);    
-    
     // const { page, skip, limit } = paginationInfo;
     // findOptions.take = paginationInfo.limit;
     // findOptions.skip = paginationInfo.skip;
@@ -226,7 +223,7 @@ export class RefreshTokenService {
     //   previous: page > 1 ? page - 1 : 0,
     //   next: total > skip + limit ? page + 1 : 0
     // });
-    return serializedResult
+    return serializedResult;
   }
 
   /**
@@ -236,7 +233,7 @@ export class RefreshTokenService {
    */
   async revokeRefreshTokenById(
     id: string,
-    userId: string
+    userId: string,
   ): Promise<RefreshTokenEntity> {
     const token = await this.refreshTokenRepository.findById(id);
     if (!token) {
@@ -246,7 +243,7 @@ export class RefreshTokenService {
       throw new ForbiddenException();
     }
     token.isRevoked = true;
-    const tokenSaved = await this.refreshTokenRepository.update(token)
+    const tokenSaved = await this.refreshTokenRepository.update(token);
     return tokenSaved;
   }
 
@@ -260,28 +257,31 @@ export class RefreshTokenService {
   //     .getRawMany();
   // }
 
-
-   /**
+  /**
    * transform role entity
    * @param model
    * @param transformOption
    */
-   transform(model: RefreshTokenEntity, transformOption = {}): RefreshTokenSerializer {
+  transform(
+    model: RefreshTokenEntity,
+    transformOption = {},
+  ): RefreshTokenSerializer {
     return plainToInstance(
       RefreshTokenSerializer,
       instanceToPlain(model, transformOption),
-      transformOption
+      transformOption,
     );
   }
 
-  
-  
   /**
    * transform many roles collection
    * @param models
    * @param transformOption
    */
-  transformMany(models: RefreshTokenEntity[], transformOption = {}): RefreshTokenSerializer[] {
+  transformMany(
+    models: RefreshTokenEntity[],
+    transformOption = {},
+  ): RefreshTokenSerializer[] {
     return models.map((model) => this.transform(model, transformOption));
   }
 }

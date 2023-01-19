@@ -1,13 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Permission as PersistencePermission } from '@prisma/client';
-import { classToPlain, instanceToPlain, plainToClass, plainToInstance } from 'class-transformer';
+import {
+  classToPlain,
+  instanceToPlain,
+  plainToClass,
+  plainToInstance,
+} from 'class-transformer';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import { PermissionEntity } from 'src/modules/permission/entities/permission.entity';
 import { RoleEntity } from 'src/modules/role/entities/role.entity';
 
-
 import { IPermissionRepository } from '../../i-permission.repository';
-
 
 @Injectable()
 export class PermissionPrismaRepository implements IPermissionRepository {
@@ -28,11 +31,11 @@ export class PermissionPrismaRepository implements IPermissionRepository {
     return this.toDomain(permission);
   }
 
-  async findByName(description: string): Promise<PermissionEntity>  {
+  async findByName(description: string): Promise<PermissionEntity> {
     const permission = await this.prismaService.permission.findUnique({
       where: {
-        description          
-      },      
+        description,
+      },
     });
 
     if (!permission) {
@@ -42,18 +45,18 @@ export class PermissionPrismaRepository implements IPermissionRepository {
     return this.toDomain(permission);
   }
 
-  async findSeveralById(ids: string[]) : Promise<PermissionEntity[]> {
-    const permissions :PermissionEntity[] = []
+  async findSeveralById(ids: string[]): Promise<PermissionEntity[]> {
+    const permissions: PermissionEntity[] = [];
 
     ids.forEach(async (id) => {
       const permission = await this.prismaService.permission.findUnique({
         where: {
-          id          
-        },      
+          id,
+        },
       });
-      permissions.push(this.toDomain(permission))
-    })
-    
+      permissions.push(this.toDomain(permission));
+    });
+
     return permissions;
   }
 
@@ -70,11 +73,10 @@ export class PermissionPrismaRepository implements IPermissionRepository {
   async create(permission: PermissionEntity): Promise<PermissionEntity> {
     try {
       const data = this.toPersistence(permission);
-      
-      const permissionSaved = await this.prismaService.permission.create(
-        {
-           data
-        });
+
+      const permissionSaved = await this.prismaService.permission.create({
+        data,
+      });
       return this.toDomain(permissionSaved);
     } catch (error) {
       this.logger.error(error);
@@ -104,37 +106,37 @@ export class PermissionPrismaRepository implements IPermissionRepository {
    * @param model
    * @param transformOption
    */
-  toDomain(model: PersistencePermission, transformOption = {}): PermissionEntity {
+  toDomain(
+    model: PersistencePermission,
+    transformOption = {},
+  ): PermissionEntity {
     return plainToInstance(
       PermissionEntity,
       instanceToPlain(model, transformOption),
-      transformOption
+      transformOption,
     );
   }
 
-  
-  
   /**
    * toDomain users collection
    * @param models
    * @param transformOption
    */
-  transformMany(models: PersistencePermission[], transformOption = {}): PermissionEntity[] {
+  transformMany(
+    models: PersistencePermission[],
+    transformOption = {},
+  ): PermissionEntity[] {
     return models.map((model) => this.toDomain(model, transformOption));
   }
 
-
   toPersistence(permission: PermissionEntity) {
-    
-        
     return {
       id: permission.id,
       resource: permission.resource,
-      description: permission.description,  
-      path : permission.path,
+      description: permission.description,
+      path: permission.path,
       method: permission.method,
-      isDefault: permission.isDefault
-
+      isDefault: permission.isDefault,
     };
   }
 }

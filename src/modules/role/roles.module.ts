@@ -11,10 +11,10 @@ import { RolesService } from './roles.service';
   imports: [
     DatabaseModule.register(process.env.REPOSITORY_TYPE),
     forwardRef(() => AuthModule),
-    PermissionsModule
+    PermissionsModule,
   ],
   exports: [RolesService],
   controllers: [RolesController],
-  providers: [RolesService/*, UniqueValidatorPipe*/]
+  providers: [RolesService /*, UniqueValidatorPipe*/],
 })
 export class RolesModule {}

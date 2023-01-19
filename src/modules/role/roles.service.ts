@@ -1,6 +1,5 @@
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 
-
 import { CommonServiceInterface } from 'src/common/interfaces/common-service.interface';
 import { NotFoundException } from 'src/exception/not-found.exception';
 import { PermissionsService } from 'src/modules/permission/permissions.service';
@@ -10,9 +9,9 @@ import { RoleFilterDto } from 'src/modules/role/dto/role-filter.dto';
 import { UpdateRoleDto } from 'src/modules/role/dto/update-role.dto';
 
 import {
-    adminUserGroupsForSerializing,
-    basicFieldGroupsForSerializing,
-    RoleSerializer
+  adminUserGroupsForSerializing,
+  basicFieldGroupsForSerializing,
+  RoleSerializer,
 } from 'src/modules/role/serializer/role.serializer';
 import { IRoleRepository } from './i-role.repository';
 import { RoleEntity } from './entities/role.entity';
@@ -20,9 +19,9 @@ import { instanceToPlain, plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ {
-  constructor(    
+  constructor(
     private roleRepository: IRoleRepository,
-    private readonly permissionsService: PermissionsService
+    private readonly permissionsService: PermissionsService,
   ) {}
 
   /**
@@ -51,18 +50,16 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
   async create(createRoleDto: CreateRoleDto): Promise<RoleSerializer> {
     const { permissions } = createRoleDto;
     const permission = await this.getPermissionByIds(permissions);
-    const role = new RoleEntity(createRoleDto)
+    const role = new RoleEntity(createRoleDto);
     const roleSaved = await this.roleRepository.create(role, permission);
-    return this.transform(roleSaved)
+    return this.transform(roleSaved);
   }
 
   /**
    * find and return collection of roles
    * @param roleFilterDto
    */
-  async findAll(
-    roleFilterDto: RoleFilterDto
-  ): Promise<RoleSerializer[]> {
+  async findAll(roleFilterDto: RoleFilterDto): Promise<RoleSerializer[]> {
     // return this.repository.paginate(
     //   roleFilterDto,
     //   [],
@@ -74,8 +71,8 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     //     ]
     //   }
     // );
-    const roles = await this.roleRepository.findAll()
-    return this.transformMany(roles) 
+    const roles = await this.roleRepository.findAll();
+    return this.transformMany(roles);
   }
 
   /**
@@ -89,8 +86,8 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     //     ...basicFieldGroupsForSerializing
     //   ]
     // });
-    const role = await this.roleRepository.findById(id)
-    return this.transform(role)
+    const role = await this.roleRepository.findById(id);
+    return this.transform(role);
   }
 
   /**
@@ -100,14 +97,13 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
    */
   async update(
     id: string,
-    updateRoleDto: UpdateRoleDto
+    updateRoleDto: UpdateRoleDto,
   ): Promise<RoleSerializer> {
     const role = await this.roleRepository.findById(id);
     if (!role) {
       throw new NotFoundException();
     }
-    
-   
+
     // if (checkUniqueTitle > 0) {
     //   throw new UnprocessableEntityException({
     //     property: 'name',
@@ -118,10 +114,10 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     // }
     const { permissions } = updateRoleDto;
     const permission = await this.getPermissionByIds(permissions);
-    role.update(updateRoleDto)
+    role.update(updateRoleDto);
     // FIXME: need to update permissions too
     const roles = await this.roleRepository.update(role);
-    return this.transform(roles) 
+    return this.transform(roles);
   }
 
   /**
@@ -142,12 +138,10 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     return plainToInstance(
       RoleSerializer,
       instanceToPlain(model, transformOption),
-      transformOption
+      transformOption,
     );
   }
 
-  
-  
   /**
    * transform many roles collection
    * @param models

@@ -17,7 +17,6 @@ export class UserInMemoryRepository implements IUserRepository {
   }
 
   async findByToken(token: string): Promise<UserEntity> {
-    
     const userIndex = this.users.findIndex((userItem) => {
       return userItem.token === token;
     });
@@ -67,5 +66,4 @@ export class UserInMemoryRepository implements IUserRepository {
 
     this.users.splice(userIndex, 1);
   }
-  
 }

@@ -1,13 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RefreshToken as PersistenceRefreshToken } from '@prisma/client';
-import { classToPlain, instanceToPlain, plainToClass, plainToInstance } from 'class-transformer';
+import {
+  classToPlain,
+  instanceToPlain,
+  plainToClass,
+  plainToInstance,
+} from 'class-transformer';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import { RefreshTokenEntity } from 'src/modules/refresh-token/entities/refresh-token.entity';
 
-
-
 import { IRefreshTokenRepository } from '../../i-refresh-token.repository';
-
 
 @Injectable()
 export class RefreshTokenPrismaRepository implements IRefreshTokenRepository {
@@ -32,9 +34,9 @@ export class RefreshTokenPrismaRepository implements IRefreshTokenRepository {
     const token = await this.prismaService.refreshToken.findMany({
       where: {
         userId: userId,
-        isRevoked: false,        
-        expires: {          
-          gte: new Date()
+        isRevoked: false,
+        expires: {
+          gte: new Date(),
         },
       },
     });
@@ -45,7 +47,6 @@ export class RefreshTokenPrismaRepository implements IRefreshTokenRepository {
 
     return this.transformMany(token);
   }
-  
 
   async findAll(): Promise<RefreshTokenEntity[]> {
     const tokens = await this.prismaService.refreshToken.findMany();
@@ -60,11 +61,10 @@ export class RefreshTokenPrismaRepository implements IRefreshTokenRepository {
   async create(token: RefreshTokenEntity): Promise<RefreshTokenEntity> {
     try {
       const data = this.toPersistence(token);
-      
-      const tokenSaved = await this.prismaService.refreshToken.create(
-        {
-           data
-        });
+
+      const tokenSaved = await this.prismaService.refreshToken.create({
+        data,
+      });
       return this.toDomain(tokenSaved);
     } catch (error) {
       this.logger.error(error);
@@ -94,39 +94,39 @@ export class RefreshTokenPrismaRepository implements IRefreshTokenRepository {
    * @param model
    * @param transformOption
    */
-  toDomain(model: PersistenceRefreshToken, transformOption = {}): RefreshTokenEntity {
+  toDomain(
+    model: PersistenceRefreshToken,
+    transformOption = {},
+  ): RefreshTokenEntity {
     return plainToInstance(
       RefreshTokenEntity,
       instanceToPlain(model, transformOption),
-      transformOption
+      transformOption,
     );
   }
 
-  
-  
   /**
    * toDomain users collection
    * @param models
    * @param transformOption
    */
-  transformMany(models: PersistenceRefreshToken[], transformOption = {}): RefreshTokenEntity[] {
+  transformMany(
+    models: PersistenceRefreshToken[],
+    transformOption = {},
+  ): RefreshTokenEntity[] {
     return models.map((model) => this.toDomain(model, transformOption));
   }
 
-
   toPersistence(token: RefreshTokenEntity) {
-    
-        
     return {
       id: token.id,
-      userId: token.userId,  
-      ip: token.ip,  
-      userAgent: token.userAgent,  
-      browser: token.browser,  
-      os: token.os,  
-      isRevoked: token.isRevoked,  
+      userId: token.userId,
+      ip: token.ip,
+      userAgent: token.userAgent,
+      browser: token.browser,
+      os: token.os,
+      isRevoked: token.isRevoked,
       expires: token.expires,
-
     };
   }
 }

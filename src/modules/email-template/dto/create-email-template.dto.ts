@@ -6,7 +6,7 @@ import {
   IsString,
   MaxLength,
   MinLength,
-  Validate
+  Validate,
 } from 'class-validator';
 // import { UniqueValidatorPipe } from 'src/common/pipes/unique-validator.pipe';
 import { EmailTemplateEntity } from 'src/modules/email-template/entities/email-template.entity';
@@ -15,9 +15,8 @@ export class CreateEmailTemplateDto {
   @IsNotEmpty()
   @IsString()
   @MaxLength(100, {
-    message: 'maxLength-{"ln":100,"count":100}'
+    message: 'maxLength-{"ln":100,"count":100}',
   })
-
   title: string;
 
   @IsNotEmpty()
@@ -32,7 +31,7 @@ export class CreateEmailTemplateDto {
   @IsNotEmpty()
   @IsString()
   @MinLength(50, {
-    message: 'minLength-{"ln":50,"count":50}'
+    message: 'minLength-{"ln":50,"count":50}',
   })
   body: string;
 

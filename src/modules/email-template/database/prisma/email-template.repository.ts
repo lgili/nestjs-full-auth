@@ -7,7 +7,6 @@ import { EmailTemplateEntity } from '../../entities/email-template.entity';
 
 import { IEmailTemplateRepository } from '../../i-email-template.repository';
 
-
 @Injectable()
 export class EmailTemplatePrismaRepository implements IEmailTemplateRepository {
   private readonly logger = new Logger(EmailTemplatePrismaRepository.name);
@@ -30,8 +29,8 @@ export class EmailTemplatePrismaRepository implements IEmailTemplateRepository {
   async findBySlug(slug: string): Promise<EmailTemplateEntity> {
     const email = await this.prismaService.emailTemplate.findUnique({
       where: {
-        slug          
-      },      
+        slug,
+      },
     });
 
     if (!email) {
@@ -54,11 +53,10 @@ export class EmailTemplatePrismaRepository implements IEmailTemplateRepository {
   async create(email: EmailTemplateEntity): Promise<EmailTemplateEntity> {
     try {
       const data = this.toPersistence(email);
-      
-      const emailSaved = await this.prismaService.emailTemplate.create(
-        {
-           data
-        });
+
+      const emailSaved = await this.prismaService.emailTemplate.create({
+        data,
+      });
       return this.toDomain(emailSaved);
     } catch (error) {
       this.logger.error(error);
@@ -88,35 +86,38 @@ export class EmailTemplatePrismaRepository implements IEmailTemplateRepository {
    * @param model
    * @param transformOption
    */
-  toDomain(model: PersistenceEmailTemplate, transformOption = {}): EmailTemplateEntity {
+  toDomain(
+    model: PersistenceEmailTemplate,
+    transformOption = {},
+  ): EmailTemplateEntity {
     return plainToInstance(
       EmailTemplateEntity,
       instanceToPlain(model, transformOption),
-      transformOption
+      transformOption,
     );
   }
 
-  
   /**
    * toDomain users collection
    * @param models
    * @param transformOption
    */
-  transformMany(models: PersistenceEmailTemplate[], transformOption = {}): EmailTemplateEntity[] {
+  transformMany(
+    models: PersistenceEmailTemplate[],
+    transformOption = {},
+  ): EmailTemplateEntity[] {
     return models.map((model) => this.toDomain(model, transformOption));
   }
 
-
-  toPersistence(email: EmailTemplateEntity) {  
-        
+  toPersistence(email: EmailTemplateEntity) {
     return {
       id: email.id,
-      title: email.title, 
-      slug: email.slug, 
-      sender: email.sender,  
-      subject: email.subject,  
-      body: email.body,     
-      isDefault: email.isDefault       
+      title: email.title,
+      slug: email.slug,
+      sender: email.sender,
+      subject: email.subject,
+      body: email.body,
+      isDefault: email.isDefault,
     };
   }
 }

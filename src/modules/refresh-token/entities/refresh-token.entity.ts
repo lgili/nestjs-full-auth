@@ -1,18 +1,14 @@
-
-
-
-export class RefreshTokenEntity  {
-
-  id: string;  
-  userId: string;  
-  ip: string;  
-  userAgent: string;  
-  browser?: string;  
-  os?: string;  
-  isRevoked: boolean;  
+export class RefreshTokenEntity {
+  id: string;
+  userId: string;
+  ip: string;
+  userAgent: string;
+  browser?: string;
+  os?: string;
+  isRevoked: boolean;
   expires: Date;
 
-  constructor(data?: Partial<RefreshTokenEntity>) {    
+  constructor(data?: Partial<RefreshTokenEntity>) {
     if (data) {
       Object.assign(this, data);
     }

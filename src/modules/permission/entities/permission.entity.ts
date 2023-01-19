@@ -1,23 +1,21 @@
-
 import { RoleEntity } from 'src/modules/role/entities/role.entity';
 
-
-export class PermissionEntity  {
+export class PermissionEntity {
   id: string;
-  
+
   resource: string;
-  
+
   description: string;
-  
+
   path: string;
-  
+
   method: string;
-  
+
   isDefault: boolean;
-  
+
   roles: RoleEntity[];
 
-  constructor(data?: Partial<PermissionEntity>) {    
+  constructor(data?: Partial<PermissionEntity>) {
     if (data) {
       Object.assign(this, data);
     }

@@ -1,15 +1,15 @@
 import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    HttpCode,
-    HttpStatus,
-    Param,
-    Post,
-    Put,
-    Query,
-    UseGuards
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 
@@ -32,18 +32,18 @@ export class PermissionsController {
   @Post()
   create(
     @Body()
-    createPermissionDto: CreatePermissionDto
+    createPermissionDto: CreatePermissionDto,
   ): Promise<PermissionSerializer> {
     return this.permissionsService.create(createPermissionDto);
   }
 
   @Get()
   @ApiQuery({
-    type: PermissionFilterDto
+    type: PermissionFilterDto,
   })
   findAll(
     @Query()
-    permissionFilterDto: PermissionFilterDto
+    permissionFilterDto: PermissionFilterDto,
   ): Promise<PermissionSerializer[]> {
     return this.permissionsService.findAll(permissionFilterDto);
   }
@@ -51,7 +51,7 @@ export class PermissionsController {
   @Get(':id')
   findOne(
     @Param('id')
-    id: string
+    id: string,
   ): Promise<PermissionSerializer> {
     return this.permissionsService.findOne(id);
   }
@@ -61,7 +61,7 @@ export class PermissionsController {
     @Param('id')
     id: string,
     @Body()
-    updatePermissionDto: UpdatePermissionDto
+    updatePermissionDto: UpdatePermissionDto,
   ): Promise<PermissionSerializer> {
     return this.permissionsService.update(id, updatePermissionDto);
   }
@@ -70,7 +70,7 @@ export class PermissionsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
     @Param('id')
-    id: string
+    id: string,
   ): Promise<void> {
     return this.permissionsService.remove(id);
   }

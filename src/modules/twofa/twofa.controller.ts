@@ -8,7 +8,7 @@ import {
   Req,
   Res,
   UnauthorizedException,
-  UseGuards
+  UseGuards,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
@@ -25,7 +25,7 @@ import { UserSerializer } from '../auth/serializer/user.serializer';
 export class TwofaController {
   constructor(
     private readonly twofaService: TwofaService,
-    private readonly usersService: AuthService
+    private readonly usersService: AuthService,
   ) {}
 
   @Post('authenticate')
@@ -39,11 +39,11 @@ export class TwofaController {
     @GetUser()
     user: UserSerializer,
     @Body()
-    twofaCodeDto: TwofaCodeDto
+    twofaCodeDto: TwofaCodeDto,
   ) {
     const isCodeValid = this.twofaService.isTwoFACodeValid(
       twofaCodeDto.code,
-      user
+      user,
     );
     if (!isCodeValid) {
       throw new UnauthorizedException('invalidOTP');
@@ -61,7 +61,7 @@ export class TwofaController {
     @Body()
     twofaStatusUpdateDto: TwoFaStatusUpdateDto,
     @GetUser()
-    user: UserEntity
+    user: UserEntity,
   ) {
     let qrDataUri = null;
     if (twofaStatusUpdateDto.isTwoFAEnabled) {
@@ -71,7 +71,7 @@ export class TwofaController {
     return this.usersService.turnOnTwoFactorAuthentication(
       user,
       twofaStatusUpdateDto.isTwoFAEnabled,
-      qrDataUri
+      qrDataUri,
     );
   }
 }

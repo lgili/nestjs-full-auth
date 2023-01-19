@@ -1,5 +1,4 @@
-import { RefreshTokenEntity } from "./entities/refresh-token.entity";
-
+import { RefreshTokenEntity } from './entities/refresh-token.entity';
 
 export abstract class IRefreshTokenRepository {
   abstract findById: (id: string) => Promise<RefreshTokenEntity>;

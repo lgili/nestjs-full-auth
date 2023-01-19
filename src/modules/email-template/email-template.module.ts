@@ -6,14 +6,13 @@ import { AuthModule } from 'src/modules/auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 // import { UniqueValidatorPipe } from 'src/common/pipes/unique-validator.pipe';
 
-
 @Module({
   imports: [
     DatabaseModule.register(process.env.REPOSITORY_TYPE),
-    forwardRef(() => AuthModule)
+    forwardRef(() => AuthModule),
   ],
   exports: [EmailTemplateService],
   controllers: [EmailTemplateController],
-  providers: [EmailTemplateService]
+  providers: [EmailTemplateService],
 })
 export class EmailTemplateModule {}

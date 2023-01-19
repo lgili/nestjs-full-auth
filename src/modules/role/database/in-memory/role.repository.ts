@@ -5,11 +5,9 @@ import { RoleEntity } from '../../entities/role.entity';
 import { IRoleRepository } from '../../i-role.repository';
 import { RoleSerializer } from '../../serializer/role.serializer';
 
-
 @Injectable()
 export class RoleInMemoryRepository implements IRoleRepository {
   private roles: RoleEntity[] = [];
-
 
   async findById(id: string): Promise<RoleEntity> {
     const userIndex = this.roles.findIndex((userItem) => {
@@ -31,7 +29,10 @@ export class RoleInMemoryRepository implements IRoleRepository {
     return this.roles;
   }
 
-  async create(role: RoleEntity, permission: PermissionEntity[]): Promise<RoleEntity> {
+  async create(
+    role: RoleEntity,
+    permission: PermissionEntity[],
+  ): Promise<RoleEntity> {
     this.roles.push(role);
 
     return role;
@@ -53,6 +54,4 @@ export class RoleInMemoryRepository implements IRoleRepository {
 
     this.roles.splice(roleIndex, 1);
   }
-
-
 }

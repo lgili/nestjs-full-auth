@@ -1,5 +1,4 @@
-import { UserEntity } from "./entity/user.entity";
-
+import { UserEntity } from './entity/user.entity';
 
 export abstract class IUserRepository {
   abstract findById: (id: string) => Promise<UserEntity>;

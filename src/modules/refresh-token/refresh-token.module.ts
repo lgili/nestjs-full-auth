@@ -1,6 +1,5 @@
 import { forwardRef, Module } from '@nestjs/common';
 
-
 import { RefreshTokenService } from 'src/modules/refresh-token/refresh-token.service';
 import { AuthModule } from 'src/modules/auth/auth.module';
 import { DatabaseModule } from './database/database.module';
@@ -12,6 +11,6 @@ import { DatabaseModule } from './database/database.module';
   ],
   providers: [RefreshTokenService],
   exports: [RefreshTokenService],
-  controllers: []
+  controllers: [],
 })
 export class RefreshTokenModule {}

@@ -1,7 +1,6 @@
 import { IRoleRepository } from '../../i-role.repository';
 import { RolePrismaRepository } from './role.repository';
 
-
 export default [
   // Repository
   {
