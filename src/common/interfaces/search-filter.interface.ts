@@ -1,5 +1,5 @@
 export interface SearchFilterInterface {
   keywords?: string;
-  limit?: number;
+  perPage?: number;
   page?: number;
 }

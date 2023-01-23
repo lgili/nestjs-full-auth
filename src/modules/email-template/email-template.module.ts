@@ -7,9 +7,7 @@ import { EmailTemplateRepository } from './email-template.repository';
 // import { UniqueValidatorPipe } from 'src/common/pipes/unique-validator.pipe';
 
 @Module({
-  imports: [    
-    forwardRef(() => AuthModule),
-  ],
+  imports: [forwardRef(() => AuthModule)],
   exports: [EmailTemplateService],
   controllers: [EmailTemplateController],
   providers: [EmailTemplateService, EmailTemplateRepository],

@@ -14,7 +14,7 @@ import {
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import JwtTwoFactorGuard from 'src/common/guard/jwt-two-factor.guard';
 import { PermissionGuard } from 'src/common/guard/permission.guard';
-import { Pagination } from 'src/modules/paginate';
+// import { Pagination } from 'src/modules/paginate';
 import { CreatePermissionDto } from 'src/modules/permission/dto/create-permission.dto';
 import { PermissionFilterDto } from 'src/modules/permission/dto/permission-filter.dto';
 import { UpdatePermissionDto } from 'src/modules/permission/dto/update-permission.dto';

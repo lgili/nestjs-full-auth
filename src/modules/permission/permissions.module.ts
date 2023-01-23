@@ -4,15 +4,15 @@ import { AuthModule } from 'src/modules/auth/auth.module';
 import { PermissionsController } from 'src/modules/permission/permissions.controller';
 import { PermissionsService } from 'src/modules/permission/permissions.service';
 
-
 import { PermissionRepository } from './permission.repository';
 
 @Module({
-  imports: [    
-    forwardRef(() => AuthModule),
-  ],
+  imports: [forwardRef(() => AuthModule)],
   exports: [PermissionsService],
   controllers: [PermissionsController],
-  providers: [PermissionsService, PermissionRepository /*, UniqueValidatorPipe*/],
+  providers: [
+    PermissionsService,
+    PermissionRepository /*, UniqueValidatorPipe*/,
+  ],
 })
 export class PermissionsModule {}

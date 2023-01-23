@@ -4,11 +4,9 @@ import {
   IsString,
   MaxLength,
   MinLength,
-  Validate,
   ValidateIf,
 } from 'class-validator';
 import { PermissionEntity } from 'src/modules/permission/entities/permission.entity';
-import { RoleEntity } from 'src/modules/role/entities/role.entity';
 
 export class CreateRoleDto {
   @IsNotEmpty()

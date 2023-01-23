@@ -1,12 +1,5 @@
-import {
-  IsIn,
-  IsNotEmpty,
-  IsString,
-  MaxLength,
-  Validate,
-} from 'class-validator';
+import { IsIn, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import { MethodList } from 'src/config/permission-config';
-import { PermissionEntity } from 'src/modules/permission/entities/permission.entity';
 
 const methodListArray = [
   MethodList.GET,

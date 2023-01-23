@@ -19,7 +19,7 @@ import { EmailTemplatesSearchFilterDto } from 'src/modules/email-template/dto/em
 import { UpdateEmailTemplateDto } from 'src/modules/email-template/dto/update-email-template.dto';
 import { EmailTemplateService } from 'src/modules/email-template/email-template.service';
 import { EmailTemplateSerializer } from 'src/modules/email-template/serializer/email-template.serializer';
-import { Pagination } from 'src/modules/paginate';
+// import { Pagination } from 'src/modules/paginate';
 
 @ApiTags('email-templates')
 @UseGuards(JwtTwoFactorGuard, PermissionGuard)

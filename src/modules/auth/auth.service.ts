@@ -8,7 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { plainToInstance } from 'class-transformer';
 import * as config from 'config';
-import { existsSync, unlinkSync } from 'fs';
+// import { existsSync, unlinkSync } from 'fs';
 import { SignOptions } from 'jsonwebtoken';
 import {
   RateLimiterRes,
@@ -16,18 +16,16 @@ import {
 } from 'rate-limiter-flexible';
 import { ExceptionTitleList } from 'src/common/constants/exception-title-list.constants';
 import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
+import { SearchFilterInterface } from 'src/common/interfaces/search-filter.interface';
 import { ValidationPayloadInterface } from 'src/common/interfaces/validation-error.interface';
 import QueryBuilder from 'src/common/repository/filter-prisma';
-import {
-  DeepPartial,
-  ObjectLiteral,
-} from 'src/common/repository/type.repository';
+import { DeepPartial } from 'src/common/repository/type.repository';
 import { CustomHttpException } from 'src/exception/custom-http.exception';
-import { UserEntity } from 'src/modules/auth/entity/user.entity';
 import { ForbiddenException } from 'src/exception/forbidden.exception';
 import { NotFoundException } from 'src/exception/not-found.exception';
 import { UnauthorizedException } from 'src/exception/unauthorized.exception';
 import { UserSearchFilterDto } from 'src/modules/auth/dto/user-search-filter.dto';
+import { UserEntity } from 'src/modules/auth/entity/user.entity';
 import { UserStatusEnum } from 'src/modules/auth/user-status.enum';
 import { Pagination } from 'src/modules/paginate';
 import { RefreshTokenEntity } from 'src/modules/refresh-token/entities/refresh-token.entity';
@@ -44,7 +42,6 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UserLoginDto } from './dto/user-login.dto';
 import {
   GROUP_ADMIN,
-  GROUP_DEFAULT,
   GROUP_USER,
   UserSerializer,
 } from './serializer/user.serializer';
@@ -75,48 +72,6 @@ export class AuthService {
     @Inject('LOGIN_THROTTLE')
     private readonly rateLimiter: RateLimiterStoreAbstract,
   ) {}
-
-  async test(
-    createUserDto: DeepPartial<UserEntity>,
-  ): Promise<Pagination<UserSerializer>> {
-    // const user =  await this.repository.findOne('96cc34dd-13ef-4b70-b7f3-555baa050e0d',
-    // {role: true},
-    // // {
-    // //   groups: [
-    // //     ...ownerUserGroupsForSerializing,
-    // //     // ...adminUserGroupsForSerializing
-    // //   ]
-    // // }
-    // )
-    const user = await this.userRepository.findBy('username', 'luiz');
-
-    const condition: ObjectLiteral = {
-      name: 'Luiz',
-    };
-    // const tokenCount = await this.repository.countEntityByCondition(
-    //   condition
-    // );
-
-    console.log(QueryBuilder);
-
-    const qb = new QueryBuilder({
-      name: 'Luiz',
-      // username: "luiz",
-      select: 'name,role',
-      sort: 'created_at',
-      page: 1,
-      perPage: 1,
-    });
-
-    const qr = qb.filter().paginate().sort().build();
-    console.log(qr);
-    const users = await this.userRepository.findAll(qr, { role: true });
-
-    // console.log(users)
-    // console.log(tokenCount)
-    const usersPag = await this.paginate(qr, { role: true });
-    return usersPag
-  }
 
   /**
    * send mail
@@ -187,7 +142,7 @@ export class AuthService {
         : 'new-user-set-password';
       const linkLabel = registerProcess ? 'Activate Account' : 'Set Password';
 
-      const userSerialized = this.transform(userSaved)
+      const userSerialized = this.transform(userSaved);
       await this.sendMailToUser(userSerialized, subject, link, slug, linkLabel);
 
       return userSerialized;
@@ -245,7 +200,7 @@ export class AuthService {
         );
       }
       throw new UnauthorizedException(error, code);
-    }    
+    }
 
     const accessToken = await this.generateAccessToken(user);
     let refreshToken = null;
@@ -270,7 +225,6 @@ export class AuthService {
     id: string,
     updateUserDto: Partial<UserEntity>,
   ): Promise<UserSerializer> {
-    
     const user = await this.userRepository.findOne(id, { role: true });
     const errorPayload: ValidationPayloadInterface[] = [];
 
@@ -319,7 +273,7 @@ export class AuthService {
     // user.update(updateUserDto);
     const userSaved = await this.userRepository.update(user.id, updateUserDto);
 
-    return this.transform(userSaved, {groups: [GROUP_USER, GROUP_ADMIN]});
+    return this.transform(userSaved, { groups: [GROUP_USER, GROUP_ADMIN] });
   }
 
   /**
@@ -331,10 +285,14 @@ export class AuthService {
   ): Promise<[user: UserSerializer, error: string, code: number]> {
     const { username, password } = userLoginDto;
     const user = await this.userRepository.findBy('username', username);
-    const userSerialized = this.transform(user,{groups: [GROUP_USER, GROUP_ADMIN]});
+
+    const userSerialized = this.transform(user, {
+      groups: [GROUP_USER, GROUP_ADMIN],
+    });
+
     if (user) {
       const hash = await bcrypt.hash(password, user.salt);
-      
+
       if (user && hash === user.password) {
         if (user.status !== UserStatusEnum.ACTIVE) {
           return [
@@ -342,8 +300,8 @@ export class AuthService {
             ExceptionTitleList.UserInactive,
             StatusCodesList.UserInactive,
           ];
-        }       
-        
+        }
+
         return [userSerialized, null, null];
       }
     }
@@ -402,31 +360,28 @@ export class AuthService {
    * get user profile
    * @param user
    */
-  async get(user: UserEntity): Promise<UserSerializer> {    
-    const userSaved = await this.userRepository.findOne(user.id,
-      { role: true}      
-    );    
-    return this.transform(userSaved, {groups:[GROUP_USER]});
+  async get(user: UserEntity): Promise<UserSerializer> {
+    const userSaved = await this.userRepository.findOne(user.id, {
+      role: true,
+    });
+
+    return this.transform(userSaved, { groups: [GROUP_USER] });
   }
-  
 
   /**
    * Get user By Id
    * @param id
    */
-  async findById(id: string): Promise<UserSerializer> {    
-    const userSaved = await this.userRepository.findOne(
-      id,
-      {
-        role: {
-          include: {
-            permissions: true,
-          },
+  async findById(id: string): Promise<UserSerializer> {
+    const userSaved = await this.userRepository.findOne(id, {
+      role: {
+        include: {
+          permissions: true,
         },
-      }
-      );
+      },
+    });
 
-    return this.transform(userSaved, {groups: [GROUP_USER, GROUP_ADMIN]});
+    return this.transform(userSaved, { groups: [GROUP_USER, GROUP_ADMIN] });
   }
 
   /**
@@ -436,7 +391,7 @@ export class AuthService {
   async findByUsername(username: string): Promise<UserSerializer> {
     const userSaved = await this.userRepository.findBy('username', username);
 
-    return this.transform(userSaved, {groups: [GROUP_USER, GROUP_ADMIN]});
+    return this.transform(userSaved, { groups: [GROUP_USER, GROUP_ADMIN] });
   }
 
   /**
@@ -445,19 +400,10 @@ export class AuthService {
    */
   async findAll(
     userSearchFilterDto: UserSearchFilterDto,
-  ): Promise<UserSerializer[]> {
-    
-    const qb = new QueryBuilder({      
-      sort: 'username,email,name,contact,address',      
-    });
+  ): Promise<Pagination<UserSerializer>> {
+    const users = await this.paginate(userSearchFilterDto);
 
-    const filterOptions = qb.sort().build();
-    const users = await this.userRepository.findAll(
-      filterOptions,
-      {role: true}
-    );
-
-    return this.transformMany(users, {groups: [GROUP_USER, GROUP_ADMIN, GROUP_DEFAULT]});
+    return users;
   }
 
   /**
@@ -520,7 +466,7 @@ export class AuthService {
     user.tokenValidityDate = currentDateTime;
     user.skipHashPassword = true;
     const userUpdated = await this.userRepository.update(user.id, user);
-    const userSerialized = this.transform(userUpdated)
+    const userSerialized = this.transform(userUpdated);
     const subject = 'Reset Password';
 
     await this.sendMailToUser(
@@ -559,14 +505,14 @@ export class AuthService {
     changePasswordDto: ChangePasswordDto,
   ): Promise<void> {
     const { oldPassword, password } = changePasswordDto;
-    const hash = await bcrypt.hash(oldPassword, user.salt);    
-   
+    const hash = await bcrypt.hash(oldPassword, user.salt);
+
     let checkOldPwdMatches = false;
 
     if (hash === user.password) {
       checkOldPwdMatches = true;
     }
-    
+
     if (!checkOldPwdMatches) {
       throw new CustomHttpException(
         ExceptionTitleList.IncorrectOldPassword,
@@ -575,8 +521,8 @@ export class AuthService {
       );
     }
     user.password = await bcrypt.hash(password, user.salt);
-    delete user['role']
-    delete user['roleId']
+    delete user['role'];
+    delete user['roleId'];
 
     await this.userRepository.update(user.id, user);
   }
@@ -799,23 +745,35 @@ export class AuthService {
 
   // need to test more
   async paginate(
-    findOptions: { take: number; skip: number },
-    include?    
+    searchFilter: DeepPartial<SearchFilterInterface>,
   ): Promise<Pagination<UserSerializer>> {
-    const [results, total] = await this.userRepository.findAndCount(findOptions);
+    const qb = new QueryBuilder({
+      page: searchFilter.page,
+      perPage: searchFilter.perPage,
+    });
+    const filterOptions = qb.paginate().build();
+
+    const [results, total] = await this.userRepository.findAndCount(
+      filterOptions,
+    );
     const serializedResult = this.transformMany(results);
 
-    const limit = findOptions.take;
-    const skip = findOptions.skip + 1;
-    const page = findOptions.skip + 1;
+    const currentPage = Number(searchFilter?.page) || 1;
+    const perPage = Number(searchFilter.perPage) || 10;
+    // const skip = currentPage > 0 ? perPage * (currentPage - 1) : 0;
+    const lastPage = Math.ceil(total / perPage);
+    console.log(searchFilter?.page);
 
     return new Pagination<UserSerializer>({
       results: serializedResult,
-      totalItems: total,
-      pageSize: limit,
-      currentPage: page,
-      previous: page > 1 ? page - 1 : 0,
-      next: total > skip + limit ? page + 1 : 0,
+      meta: {
+        total,
+        lastPage,
+        currentPage,
+        perPage,
+        previous: currentPage > 1 ? currentPage - 1 : null,
+        next: currentPage < lastPage ? currentPage + 1 : null,
+      },
     });
   }
 
@@ -824,8 +782,8 @@ export class AuthService {
    * @param model
    * @param transformOptions
    */
-  transform(model: UserEntity, transformOptions = {}): UserSerializer { 
-    return plainToInstance(UserSerializer, model, transformOptions) ;
+  transform(model: UserEntity, transformOptions = {}): UserSerializer {
+    return plainToInstance(UserSerializer, model, transformOptions);
   }
 
   /**

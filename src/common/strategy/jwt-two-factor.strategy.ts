@@ -8,7 +8,6 @@ import { CustomHttpException } from 'src/exception/custom-http.exception';
 import { AuthService } from 'src/modules/auth/auth.service';
 import { JwtPayloadDto } from 'src/modules/auth/dto/jwt-payload.dto';
 import { UserSerializer } from 'src/modules/auth/serializer/user.serializer';
-import { UserRepository } from 'src/modules/auth/user.repository';
 
 @Injectable()
 export class JwtTwoFactorStrategy extends PassportStrategy(
@@ -31,7 +30,7 @@ export class JwtTwoFactorStrategy extends PassportStrategy(
     const user = await this.authService.findById(subject);
 
     if (!user.isTwoFAEnabled) {
-      return user
+      return user;
     }
 
     if (isTwoFAAuthenticated) {

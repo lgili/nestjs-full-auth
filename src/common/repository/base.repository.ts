@@ -1,18 +1,13 @@
 // import { PrismaService } from '../database/config.database';
 import { PrismaClient } from '@prisma/client';
 import { NotFoundException } from 'src/exception/not-found.exception';
-import { Pagination } from 'src/modules/paginate';
-
 
 import { DeepPartial, Repository } from './type.repository';
 
-export abstract class BaseRepository<Entity>
-  implements Repository<Entity>
-{
+export abstract class BaseRepository<Entity> implements Repository<Entity> {
   private readonly ORM: PrismaClient;
   private readonly table_name: string;
-  
-  
+
   protected constructor(tablename: string, ORM: PrismaClient) {
     this.ORM = ORM;
     this.table_name = tablename;
@@ -38,10 +33,7 @@ export abstract class BaseRepository<Entity>
     });
   }
 
-  async findAll(
-    findOptions = {},
-    include?
-  ): Promise<Entity[]> {
+  async findAll(findOptions = {}, include?): Promise<Entity[]> {
     try {
       const results = await this.ORM[this.table_name.toString()].findMany({
         ...findOptions,
@@ -62,17 +54,16 @@ export abstract class BaseRepository<Entity>
    * @param include
    * @param transformOptions
    */
-  async findAndCount(
-    findOptions = {},
-    include?
-  ): Promise<[Entity[], number]> {
+  async findAndCount(findOptions = {}, include?): Promise<[Entity[], number]> {
     try {
       const results = await this.ORM[this.table_name.toString()].findMany({
         ...findOptions,
         include,
       });
 
-      return [results, results.length];
+      const all = await this.ORM[this.table_name.toString()].count();
+
+      return [results, all];
     } catch (error) {
       console.log(error);
 
@@ -98,15 +89,12 @@ export abstract class BaseRepository<Entity>
         if (!entity) {
           return Promise.reject(new NotFoundException());
         }
-        
-        return Promise.resolve(
-          entity ? entity : null,
-        );
+
+        return Promise.resolve(entity ? entity : null);
       })
       .catch((error) => Promise.reject(error));
   }
 
-  
   /**
    * find by condition
    * @param fieldName
@@ -117,7 +105,7 @@ export abstract class BaseRepository<Entity>
   async findBy(
     fieldName: string,
     value: any,
-    include?
+    include?,
   ): Promise<Entity | null> {
     return this.ORM[this.table_name.toString()]
       .findFirst({
@@ -131,9 +119,7 @@ export abstract class BaseRepository<Entity>
           return null; //Promise.reject(new NotFoundException()); see if can use this instead
         }
 
-        return Promise.resolve(
-          entity ? entity : null,
-        );
+        return Promise.resolve(entity ? entity : null);
       })
       .catch((error) => Promise.reject(error));
   }
@@ -152,8 +138,4 @@ export abstract class BaseRepository<Entity>
       })
       .catch((error) => Promise.reject(error));
   }
-
-  
-
-  
 }

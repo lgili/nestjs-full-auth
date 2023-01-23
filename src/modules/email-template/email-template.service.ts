@@ -1,17 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { ExceptionTitleList } from 'src/common/constants/exception-title-list.constants';
 import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
+import QueryBuilder from 'src/common/repository/filter-prisma';
 import { ForbiddenException } from 'src/exception/forbidden.exception';
 import { CreateEmailTemplateDto } from 'src/modules/email-template/dto/create-email-template.dto';
 import { EmailTemplatesSearchFilterDto } from 'src/modules/email-template/dto/email-templates-search-filter.dto';
 import { UpdateEmailTemplateDto } from 'src/modules/email-template/dto/update-email-template.dto';
 import { EmailTemplateSerializer } from 'src/modules/email-template/serializer/email-template.serializer';
-import { Pagination } from 'src/modules/paginate';
+// import { Pagination } from 'src/modules/paginate';
+
 import { EmailTemplateRepository } from './email-template.repository';
-
 import { EmailTemplateEntity } from './entities/email-template.entity';
-
 
 @Injectable()
 /*implements CommonServiceInterface<EmailTemplate>*/
@@ -39,15 +39,7 @@ export class EmailTemplateService {
    * @param slug
    */
   async findBySlug(slug) {
-    // return await this.repository.findOne({
-    //   select: ['body'],
-    //   where: {
-    //     slug
-    //   }
-    // });
-    return await this.emailTemplateRepository.findBy(
-      'slug',
-      slug);
+    return await this.emailTemplateRepository.findBy('slug', slug);
   }
 
   /**
@@ -57,10 +49,6 @@ export class EmailTemplateService {
   async create(
     createEmailTemplateDto: CreateEmailTemplateDto,
   ): Promise<EmailTemplateSerializer> {
-    /*return this.repository.createEntity({
-      ...createEmailTemplateDto,
-      slug: this.slugify(createEmailTemplateDto.title)
-    });*/
     const emailTemplate = new EmailTemplateEntity(createEmailTemplateDto);
     emailTemplate.slug = this.slugify(createEmailTemplateDto.title);
 
@@ -83,7 +71,12 @@ export class EmailTemplateService {
       [],
       ['title', 'subject', 'body', 'sender']
     );*/
-    const emails = await this.emailTemplateRepository.findAll();
+    const qb = new QueryBuilder({
+      sort: 'title,subject,body,sender',
+    });
+
+    const filterOptions = qb.sort().build();
+    const emails = await this.emailTemplateRepository.findAll(filterOptions);
 
     return this.transformMany(emails);
   }
@@ -93,7 +86,8 @@ export class EmailTemplateService {
    * @param id
    */
   async findOne(id: string): Promise<EmailTemplateSerializer> {
-    const template  =  await this.emailTemplateRepository.findOne(id)
+    const template = await this.emailTemplateRepository.findOne(id);
+
     return this.transform(template);
   }
 
@@ -108,22 +102,27 @@ export class EmailTemplateService {
   ): Promise<EmailTemplateSerializer> {
     const template = await this.emailTemplateRepository.findOne(id);
 
-    // if (countSameDescription > 0) {
-    //   throw new UnprocessableEntityException({
-    //     property: 'title',
-    //     constraints: {
-    //       unique: 'already taken'
-    //     }
-    //   });
-    // }
+    const hasTitle = await this.emailTemplateRepository.findBy(
+      'title',
+      updateEmailTemplateDto.title,
+    );
 
-    // return this.repository.updateEntity(template, {
-    //   ...updateEmailTemplateDto,
-    //   slug: this.slugify(updateEmailTemplateDto.title)
-    // });
-    template.update(updateEmailTemplateDto); // Check if is updating TODO
-    template.slug = this.slugify(updateEmailTemplateDto.title);
-    const emailSaved = await this.emailTemplateRepository.update(template.id, template);
+    if (hasTitle) {
+      throw new UnprocessableEntityException({
+        property: 'title',
+        constraints: {
+          unique: 'already taken',
+        },
+      });
+    }
+
+    const emailTemplate = new EmailTemplateEntity(updateEmailTemplateDto);
+    emailTemplate.slug = this.slugify(updateEmailTemplateDto.title);
+
+    const emailSaved = await this.emailTemplateRepository.update(
+      template.id,
+      emailTemplate,
+    );
 
     return this.transform(emailSaved);
   }
@@ -144,14 +143,16 @@ export class EmailTemplateService {
     await this.emailTemplateRepository.delete(id);
   }
 
-  
   /**
    * transform entity
    * @param model
    * @param transformOptions
    */
-  transform(model: EmailTemplateEntity, transformOptions = {}): EmailTemplateSerializer { 
-    return plainToInstance(EmailTemplateSerializer, model, transformOptions) ;
+  transform(
+    model: EmailTemplateEntity,
+    transformOptions = {},
+  ): EmailTemplateSerializer {
+    return plainToInstance(EmailTemplateSerializer, model, transformOptions);
   }
 
   /**
@@ -159,8 +160,10 @@ export class EmailTemplateService {
    * @param models
    * @param transformOptions
    */
-  transformMany(models: EmailTemplateEntity[], transformOptions = {}): EmailTemplateSerializer[] {
+  transformMany(
+    models: EmailTemplateEntity[],
+    transformOptions = {},
+  ): EmailTemplateSerializer[] {
     return models.map((model) => this.transform(model, transformOptions));
   }
-  
 }

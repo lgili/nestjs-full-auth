@@ -1,17 +1,12 @@
-import { Injectable, UnprocessableEntityException } from '@nestjs/common';
-import { instanceToPlain, plainToInstance } from 'class-transformer';
-import { CommonServiceInterface } from 'src/common/interfaces/common-service.interface';
+import { Injectable } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { NotFoundException } from 'src/exception/not-found.exception';
-import { Pagination } from 'src/modules/paginate';
+// import { Pagination } from 'src/modules/paginate';
 import { PermissionsService } from 'src/modules/permission/permissions.service';
 import { CreateRoleDto } from 'src/modules/role/dto/create-role.dto';
 import { RoleFilterDto } from 'src/modules/role/dto/role-filter.dto';
 import { UpdateRoleDto } from 'src/modules/role/dto/update-role.dto';
-import {
-  adminUserGroupsForSerializing,
-  basicFieldGroupsForSerializing,
-  RoleSerializer,
-} from 'src/modules/role/serializer/role.serializer';
+import { RoleSerializer } from 'src/modules/role/serializer/role.serializer';
 
 import { RoleEntity } from './entities/role.entity';
 import { RoleRepository } from './role.repository';
@@ -40,9 +35,7 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
    * @param name
    */
   async findByName(name: string) {
-    return await this.roleRepository.findBy(
-      'name',
-      name);
+    return await this.roleRepository.findBy('name', name);
   }
 
   /**
@@ -137,14 +130,13 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     await this.roleRepository.delete(id);
   }
 
-  
   /**
    * transform entity
    * @param model
    * @param transformOptions
    */
-  transform(model: RoleEntity, transformOptions = {}): RoleSerializer { 
-    return plainToInstance(RoleSerializer, model, transformOptions) ;
+  transform(model: RoleEntity, transformOptions = {}): RoleSerializer {
+    return plainToInstance(RoleSerializer, model, transformOptions);
   }
 
   /**

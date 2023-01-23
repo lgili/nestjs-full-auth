@@ -25,7 +25,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt-strategy') {
    * @param payload
    */
   async validate(payload: JwtPayloadDto): Promise<UserSerializer> {
-    const { subject } = payload;    
+    const { subject } = payload;
     const user = await this.authService.findById(subject);
 
     if (!user) {

@@ -9,7 +9,6 @@ import { ModelSerializer } from 'src/common/serializer/model.serializer';
 import { UserStatusEnum } from 'src/modules/auth/user-status.enum';
 import { RoleSerializer } from 'src/modules/role/serializer/role.serializer';
 
-
 export const GROUP_USER = 'owner';
 export const GROUP_ALL_USERS = 'all_users';
 export const GROUP_ADMIN = 'admin';
@@ -62,7 +61,7 @@ export class UserSerializer extends ModelSerializer {
   @Expose({
     groups: [GROUP_USER],
   })
-  @Type(() => RoleSerializer)  
+  @Type(() => RoleSerializer)
   role: RoleSerializer;
 
   @Exclude({

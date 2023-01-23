@@ -1,5 +1,5 @@
-import { OmitType, PartialType } from '@nestjs/swagger';
-import { IsIn, IsNumber, IsString } from 'class-validator';
+import { PartialType } from '@nestjs/swagger';
+import { IsIn, IsString } from 'class-validator';
 import { RegisterUserDto } from 'src/modules/auth/dto/register-user.dto';
 
 import { UserStatusEnum } from '../user-status.enum';

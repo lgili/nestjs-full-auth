@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
-
 import {
   PermissionConfiguration,
   RoutePayloadInterface,
 } from 'src/config/permission-config';
-import { Pagination } from 'src/modules/paginate';
+// import { Pagination } from 'src/modules/paginate';
 import { CreatePermissionDto } from 'src/modules/permission/dto/create-permission.dto';
 import { PermissionFilterDto } from 'src/modules/permission/dto/permission-filter.dto';
 import { UpdatePermissionDto } from 'src/modules/permission/dto/update-permission.dto';
@@ -155,24 +154,28 @@ export class PermissionsService extends LoadPermissionMisc {
    * @param ids
    */
   async whereInIds(ids: string[]): Promise<PermissionEntity[]> {
-    const permission:PermissionEntity[] = []
+    const permission: PermissionEntity[] = [];
     ids.forEach(async (id) => {
-      const result = await this.permissionRepository.findOne(id)
-      if(result){
-         permission.push(result)
+      const result = await this.permissionRepository.findOne(id);
+
+      if (result) {
+        permission.push(result);
       }
-    })
+    });
+
     return permission;
   }
 
-  
   /**
    * transform entity
    * @param model
    * @param transformOptions
    */
-  transform(model: PermissionEntity, transformOptions = {}): PermissionSerializer { 
-    return plainToInstance(PermissionSerializer, model, transformOptions) ;
+  transform(
+    model: PermissionEntity,
+    transformOptions = {},
+  ): PermissionSerializer {
+    return plainToInstance(PermissionSerializer, model, transformOptions);
   }
 
   /**
@@ -180,8 +183,10 @@ export class PermissionsService extends LoadPermissionMisc {
    * @param models
    * @param transformOptions
    */
-  transformMany(models: PermissionEntity[], transformOptions = {}): PermissionSerializer[] {
+  transformMany(
+    models: PermissionEntity[],
+    transformOptions = {},
+  ): PermissionSerializer[] {
     return models.map((model) => this.transform(model, transformOptions));
   }
-  
 }

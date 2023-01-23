@@ -1,6 +1,6 @@
 import { forwardRef, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { instanceToPlain, plainToInstance } from 'class-transformer';
+import { plainToInstance } from 'class-transformer';
 import * as config from 'config';
 import { SignOptions, TokenExpiredError } from 'jsonwebtoken';
 import { ExceptionTitleList } from 'src/common/constants/exception-title-list.constants';
@@ -11,8 +11,8 @@ import { ForbiddenException } from 'src/exception/forbidden.exception';
 import { NotFoundException } from 'src/exception/not-found.exception';
 import { AuthService } from 'src/modules/auth/auth.service';
 import { UserSerializer } from 'src/modules/auth/serializer/user.serializer';
-import { Pagination } from 'src/modules/paginate';
-import { PaginationInfoInterface } from 'src/modules/paginate/pagination-info.interface';
+// import { Pagination } from 'src/modules/paginate';
+// import { PaginationInfoInterface } from 'src/modules/paginate/pagination-info.interface';
 import { RefreshPaginateFilterDto } from 'src/modules/refresh-token/dto/refresh-paginate-filter.dto';
 import { RefreshTokenInterface } from 'src/modules/refresh-token/interface/refresh-token.interface';
 import { RefreshTokenSerializer } from 'src/modules/refresh-token/serializer/refresh-token.serializer';
@@ -54,7 +54,7 @@ export class RefreshTokenService {
       expiration.getSeconds() + tokenConfig.refreshExpiresIn,
     );
     token.expires = expiration;
-    console.log(token);
+    // console.log(token);
 
     const tokenSaved = await this.refreshTokenRepository.create(token);
 
@@ -173,7 +173,8 @@ export class RefreshTokenService {
       );
     }
     const user = await this.authService.findById(subId.toString());
-    return user
+
+    return user;
   }
 
   /**
@@ -193,7 +194,8 @@ export class RefreshTokenService {
       );
     }
     const token = await this.refreshTokenRepository.findOne(tokenId.toString());
-    return this.transform(token)
+
+    return this.transform(token);
   }
 
   async updateRefreshToken(token: RefreshTokenSerializer) {
@@ -208,16 +210,17 @@ export class RefreshTokenService {
     userId: string,
     filter: RefreshPaginateFilterDto,
   ): Promise<RefreshTokenSerializer[]> {
-
     const qb = new QueryBuilder({
-      userId: userId,      
-      select: 'user',      
+      userId: userId,
+      select: 'user',
     });
 
     const findOptions = qb.filter().sort().build();
+
     const tokens = await this.refreshTokenRepository.findAll(
       findOptions,
-      userId);
+      userId,
+    );
 
     // const { page, skip, limit } = paginationInfo;
     // findOptions.take = paginationInfo.limit;
@@ -258,7 +261,11 @@ export class RefreshTokenService {
       throw new ForbiddenException();
     }
     token.isRevoked = true;
-    const tokenSaved = await this.refreshTokenRepository.update(token.id, token);
+
+    const tokenSaved = await this.refreshTokenRepository.update(
+      token.id,
+      token,
+    );
 
     return this.transform(tokenSaved);
   }
@@ -273,14 +280,16 @@ export class RefreshTokenService {
   //     .getRawMany();
   // }
 
-
   /**
    * transform entity
    * @param model
    * @param transformOptions
    */
-  transform(model: RefreshTokenEntity, transformOptions = {}): RefreshTokenSerializer { 
-    return plainToInstance(RefreshTokenSerializer, model, transformOptions) ;
+  transform(
+    model: RefreshTokenEntity,
+    transformOptions = {},
+  ): RefreshTokenSerializer {
+    return plainToInstance(RefreshTokenSerializer, model, transformOptions);
   }
 
   /**
@@ -288,8 +297,10 @@ export class RefreshTokenService {
    * @param models
    * @param transformOptions
    */
-  transformMany(models: RefreshTokenEntity[], transformOptions = {}): RefreshTokenSerializer[] {
+  transformMany(
+    models: RefreshTokenEntity[],
+    transformOptions = {},
+  ): RefreshTokenSerializer[] {
     return models.map((model) => this.transform(model, transformOptions));
   }
-  
 }

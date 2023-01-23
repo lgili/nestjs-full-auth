@@ -11,7 +11,6 @@ import {
   Query,
   Req,
   Res,
-  SerializeOptions,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -43,17 +42,10 @@ import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { UserLoginDto } from './dto/user-login.dto';
 import { UserSerializer } from './serializer/user.serializer';
 
-
 @ApiTags('user')
 @Controller()
 export class AuthController {
   constructor(private authService: AuthService) {}
-
-  @UseInterceptors(ClassSerializerInterceptor)
-  @Post('test')
-  test(registerUserDto: RegisterUserDto): Promise<Pagination<UserSerializer>> {
-    return this.authService.test(registerUserDto);
-  }
 
   @UseInterceptors(ClassSerializerInterceptor)
   @Post('/auth/register')
@@ -97,7 +89,7 @@ export class AuthController {
   findAll(
     @Query()
     userSearchFilterDto: UserSearchFilterDto,
-  ): Promise<UserSerializer[]> {
+  ): Promise<Pagination<UserSerializer>> {
     return this.authService.findAll(userSearchFilterDto);
   }
 
@@ -174,10 +166,9 @@ export class AuthController {
     return this.authService.resetPassword(resetPasswordDto);
   }
 
-
   @UseInterceptors(ClassSerializerInterceptor)
   @UseGuards(JwtTwoFactorGuard)
-  @Get('/auth/profile')  
+  @Get('/auth/profile')
   profile(
     @GetUser()
     user: UserEntity,

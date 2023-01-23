@@ -16,7 +16,7 @@ export class CommonSearchFieldDto {
   @Min(1, {
     message: 'min-{"ln":1,"count":1}',
   })
-  limit: number;
+  perPage: number;
 
   @ApiPropertyOptional()
   @ValidateIf((object, value) => value)

@@ -1,8 +1,21 @@
-export interface PaginationResultInterface<PaginationEntity> {
-  results: PaginationEntity[];
+// export interface PaginationResultInterface<PaginationEntity> {
+//   results: PaginationEntity[];
+//   currentPage: number;
+//   pageSize: number;
+//   totalItems: number;
+//   next: number;
+//   previous: number;
+// }
+
+export interface PaginationMeta {
+  total: number;
+  lastPage: number;
   currentPage: number;
-  pageSize: number;
-  totalItems: number;
-  next: number;
-  previous: number;
+  perPage: number;
+  previous: number | null;
+  next: number | null;
+}
+export interface PaginationResultInterface<T> {
+  results: T[];
+  meta: PaginationMeta;
 }
