@@ -1,11 +1,8 @@
 import * as bcrypt from 'bcrypt';
 import { Exclude } from 'class-transformer';
 import { DeepPartial } from 'src/common/repository/type.repository';
-
 import { UserStatusEnum } from 'src/modules/auth/user-status.enum';
 import { RoleEntity } from 'src/modules/role/entities/role.entity';
-
-
 
 /**
  * User Entity
@@ -87,6 +84,7 @@ export class UserEntity {
 
   async validatePassword(password: string): Promise<boolean> {
     const hash = await bcrypt.hash(password, this.salt);
+
     return hash === this.password;
   }
 

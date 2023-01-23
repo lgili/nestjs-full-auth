@@ -1,14 +1,11 @@
-import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Injectable } from '@nestjs/common';
-
+import { PassportStrategy } from '@nestjs/passport';
 import * as config from 'config';
-
-// import { UserRepository } from 'src/modules/auth/user.repository';
-import { UserEntity } from 'src/modules/auth/entity/user.entity';
-import { JwtPayloadDto } from 'src/modules/auth/dto/jwt-payload.dto';
+import { ExtractJwt, Strategy } from 'passport-jwt';
 import { UnauthorizedException } from 'src/exception/unauthorized.exception';
-import { IUserRepository } from 'src/modules/auth/i-user.repository';
+import { JwtPayloadDto } from 'src/modules/auth/dto/jwt-payload.dto';
+import { UserSerializer } from 'src/modules/auth/serializer/user.serializer';
+import { UserRepository } from 'src/modules/auth/user.repository';
 
 const cookieExtractor = (req) => {
   return req?.cookies?.Authentication;
@@ -16,7 +13,7 @@ const cookieExtractor = (req) => {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt-strategy') {
-  constructor(private userRepository: IUserRepository) {
+  constructor(private userRepository: UserRepository) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([cookieExtractor]),
       secretOrKey: process.env.JWT_SECRET || config.get('jwt.secret'),
@@ -27,16 +24,18 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt-strategy') {
    * Validate if user exists and return user entity
    * @param payload
    */
-  async validate(payload: JwtPayloadDto): Promise<UserEntity> {
+  async validate(payload: JwtPayloadDto): Promise<UserSerializer> {
     const { subject } = payload;
     // const user = await this.userRepository.findOne(Number(subject), {
     //   relations: ['role', 'role.permission']
     // });
     // FIXME:
-    const user = await this.userRepository.findById(subject);
+    const user = await this.userRepository.findOne(subject, { role: true });
+
     if (!user) {
       throw new UnauthorizedException();
     }
+
     return user;
   }
 }

@@ -12,15 +12,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
-
-import { RolesService } from 'src/modules/role/roles.service';
+import JwtTwoFactorGuard from 'src/common/guard/jwt-two-factor.guard';
+import { PermissionGuard } from 'src/common/guard/permission.guard';
 import { CreateRoleDto } from 'src/modules/role/dto/create-role.dto';
-import { UpdateRoleDto } from 'src/modules/role/dto/update-role.dto';
 import { RoleFilterDto } from 'src/modules/role/dto/role-filter.dto';
+import { UpdateRoleDto } from 'src/modules/role/dto/update-role.dto';
+import { RolesService } from 'src/modules/role/roles.service';
 import { RoleSerializer } from 'src/modules/role/serializer/role.serializer';
 // import { Pagination } from 'src/paginate';
-import { PermissionGuard } from 'src/common/guard/permission.guard';
-import JwtTwoFactorGuard from 'src/common/guard/jwt-two-factor.guard';
 
 @ApiTags('roles')
 @UseGuards(JwtTwoFactorGuard, PermissionGuard)

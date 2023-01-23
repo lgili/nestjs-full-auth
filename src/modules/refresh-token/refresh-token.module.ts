@@ -1,15 +1,13 @@
 import { forwardRef, Module } from '@nestjs/common';
-
-import { RefreshTokenService } from 'src/modules/refresh-token/refresh-token.service';
 import { AuthModule } from 'src/modules/auth/auth.module';
-import { DatabaseModule } from './database/database.module';
+import { RefreshTokenService } from 'src/modules/refresh-token/refresh-token.service';
+import { RefreshTokenRepository } from './refresh-token.repository';
 
 @Module({
   imports: [
     forwardRef(() => AuthModule),
-    DatabaseModule.register(process.env.REPOSITORY_TYPE),
   ],
-  providers: [RefreshTokenService],
+  providers: [RefreshTokenService, RefreshTokenRepository],
   exports: [RefreshTokenService],
   controllers: [],
 })

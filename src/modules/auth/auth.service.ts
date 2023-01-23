@@ -4,50 +4,52 @@ import {
   Injectable,
   UnprocessableEntityException,
 } from '@nestjs/common';
-
 import { JwtService } from '@nestjs/jwt';
-import { SignOptions } from 'jsonwebtoken';
+import * as bcrypt from 'bcrypt';
+import { instanceToPlain, plainToInstance } from 'class-transformer';
 import * as config from 'config';
 import { existsSync, unlinkSync } from 'fs';
-import * as bcrypt from 'bcrypt';
-
-import { UserSearchFilterDto } from 'src/modules/auth/dto/user-search-filter.dto';
-import { UserEntity } from 'src/modules/auth/entity/user.entity';
-
-import { ExceptionTitleList } from 'src/common/constants/exception-title-list.constants';
-import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
-import { ValidationPayloadInterface } from 'src/common/interfaces/validation-error.interface';
-import { CustomHttpException } from 'src/exception/custom-http.exception';
-import { ForbiddenException } from 'src/exception/forbidden.exception';
-import { NotFoundException } from 'src/exception/not-found.exception';
-import { UnauthorizedException } from 'src/exception/unauthorized.exception';
-import { IUserRepository } from 'src/modules/auth/i-user.repository';
-import { UserStatusEnum } from 'src/modules/auth/user-status.enum';
-
-import { Pagination } from 'src/modules/paginate';
-import { CreateUserDto } from './dto/create-user.dto';
-import { RegisterUserDto } from './dto/register-user.dto';
-import { adminUserGroupsForSerializing, ownerUserGroupsForSerializing, UserSerializer } from './serializer/user.serializer';
-import { instanceToPlain, plainToInstance } from 'class-transformer';
-import { MailService } from '../mail/mail.service';
-import { RefreshTokenService } from '../refresh-token/refresh-token.service';
-import { MailJobInterface } from '../mail/interface/mail-job.interface';
-import { RolesService } from '../role/roles.service';
-import { UserLoginDto } from './dto/user-login.dto';
-import { RefreshTokenEntity } from 'src/modules/refresh-token/entities/refresh-token.entity';
+import { SignOptions } from 'jsonwebtoken';
 import {
   RateLimiterRes,
   RateLimiterStoreAbstract,
 } from 'rate-limiter-flexible';
-import { RefreshPaginateFilterDto } from '../refresh-token/dto/refresh-paginate-filter.dto';
-import { RefreshTokenSerializer } from '../refresh-token/serializer/refresh-token.serializer';
-import { ChangePasswordDto } from './dto/change-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
-import { ForgetPasswordDto } from './dto/forget-password.dto';
-import { UserPrismaRepository } from './user.repository';
-import { DeepPartial, ObjectLiteral } from 'src/common/repository/type.repository';
-
+import { ExceptionTitleList } from 'src/common/constants/exception-title-list.constants';
+import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
+import { ValidationPayloadInterface } from 'src/common/interfaces/validation-error.interface';
 import QueryBuilder from 'src/common/repository/filter-prisma';
+import {
+  DeepPartial,
+  ObjectLiteral,
+} from 'src/common/repository/type.repository';
+import { CustomHttpException } from 'src/exception/custom-http.exception';
+import { UserEntity } from 'src/modules/auth/entity/user.entity';
+import { ForbiddenException } from 'src/exception/forbidden.exception';
+import { NotFoundException } from 'src/exception/not-found.exception';
+import { UnauthorizedException } from 'src/exception/unauthorized.exception';
+import { UserSearchFilterDto } from 'src/modules/auth/dto/user-search-filter.dto';
+import { UserStatusEnum } from 'src/modules/auth/user-status.enum';
+import { Pagination } from 'src/modules/paginate';
+import { RefreshTokenEntity } from 'src/modules/refresh-token/entities/refresh-token.entity';
+
+import { MailJobInterface } from '../mail/interface/mail-job.interface';
+import { MailService } from '../mail/mail.service';
+import { RefreshPaginateFilterDto } from '../refresh-token/dto/refresh-paginate-filter.dto';
+import { RefreshTokenService } from '../refresh-token/refresh-token.service';
+import { RefreshTokenSerializer } from '../refresh-token/serializer/refresh-token.serializer';
+import { RolesService } from '../role/roles.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { ForgetPasswordDto } from './dto/forget-password.dto';
+import { RegisterUserDto } from './dto/register-user.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UserLoginDto } from './dto/user-login.dto';
+import {
+  adminUserGroupsForSerializing,
+  ownerUserGroupsForSerializing,
+  UserSerializer,
+} from './serializer/user.serializer';
+import { UserRepository } from './user.repository';
 
 const throttleConfig = config.get('throttle.login');
 const jwtConfig = config.get('jwt');
@@ -57,6 +59,7 @@ const isSameSite =
   appConfig.sameSite !== null
     ? appConfig.sameSite
     : process.env.IS_SAME_SITE === 'true';
+
 const BASE_OPTIONS: SignOptions = {
   issuer: appConfig.appUrl,
   audience: appConfig.frontendUrl,
@@ -65,8 +68,7 @@ const BASE_OPTIONS: SignOptions = {
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly userRepository: IUserRepository,
-    private readonly repository: UserPrismaRepository,
+    private readonly userRepository: UserRepository,
     private readonly jwt: JwtService,
     private readonly roleService: RolesService,
     private readonly mailService: MailService,
@@ -76,62 +78,45 @@ export class AuthService {
   ) {}
 
   async test(
-      createUserDto: DeepPartial<UserEntity>,
-    ): Promise<Pagination<UserSerializer>> {
+    createUserDto: DeepPartial<UserEntity>,
+  ): Promise<Pagination<UserSerializer>> {
+    // const user =  await this.repository.findOne('96cc34dd-13ef-4b70-b7f3-555baa050e0d',
+    // {role: true},
+    // // {
+    // //   groups: [
+    // //     ...ownerUserGroupsForSerializing,
+    // //     // ...adminUserGroupsForSerializing
+    // //   ]
+    // // }
+    // )
+    const user = await this.userRepository.findBy('username', 'luiz');
 
-      
-     
-      // const user =  await this.repository.findOne('96cc34dd-13ef-4b70-b7f3-555baa050e0d',
-      // {role: true},
-      // // {
-      // //   groups: [
-      // //     ...ownerUserGroupsForSerializing,
-      // //     // ...adminUserGroupsForSerializing
-      // //   ]
-      // // }
-      // )
-      const user = await this.repository.findBy('username','luiz')
-      const condition: ObjectLiteral = {
-        name: 'Luiz'
-      };
-      // const tokenCount = await this.repository.countEntityByCondition(
-      //   condition
-      // );
-      
-      console.log(QueryBuilder);
-      const qb = new QueryBuilder({
-        name: "Luiz", 
-        // username: "luiz",       
-        select: "name,role",
-        sort: "created_at" ,
-        page: 1   ,
-        perPage: 1         
-      });
+    const condition: ObjectLiteral = {
+      name: 'Luiz',
+    };
+    // const tokenCount = await this.repository.countEntityByCondition(
+    //   condition
+    // );
 
-      const qr = qb
-      .filter()
-      .paginate()     
-      .sort()
-      .build()
-      console.log(
-        qr
-      );
-      const users  = await this.repository.findAll(
-        qr,
-        {role: true}
-      )
-      // console.log(users)
-      // console.log(tokenCount)
-      return this.repository.paginate(
-        qr,
-        {role: true}
-      )
-    }
+    console.log(QueryBuilder);
 
+    const qb = new QueryBuilder({
+      name: 'Luiz',
+      // username: "luiz",
+      select: 'name,role',
+      sort: 'created_at',
+      page: 1,
+      perPage: 1,
+    });
 
+    const qr = qb.filter().paginate().sort().build();
+    console.log(qr);
+    const users = await this.userRepository.findAll(qr, { role: true });
 
-
-
+    // console.log(users)
+    // console.log(tokenCount)
+    return this.userRepository.paginate(qr, { role: true });
+  }
 
   /**
    * send mail
@@ -149,6 +134,7 @@ export class AuthService {
     linkLabel: string,
   ) {
     const appConfig = config.get('app');
+
     const mailData: MailJobInterface = {
       to: user.email,
       subject,
@@ -172,6 +158,7 @@ export class AuthService {
   ): Promise<UserSerializer> {
     const user = new UserEntity(createUserDto);
     const token = await this.generateUniqueToken(12);
+
     if (!user.status) {
       // normal user creation
       const normalRole = await this.roleService.findByName('normal');
@@ -187,15 +174,19 @@ export class AuthService {
     user.salt = await bcrypt.genSalt();
     user.password = await bcrypt.hash(user.password, user.salt);
 
-    const userSaved = await this.repository.create(user);
+    const userSaved = await this.userRepository.create(user);
+
     // console.log(userSaved)
-    if(userSaved){
+    if (userSaved) {
       const registerProcess = createUserDto.status;
       const subject = registerProcess ? 'Account created' : 'Set Password';
       const link = registerProcess ? `verify/${token}` : `reset/${token}`;
-      const slug = registerProcess ? 'activate-account' : 'new-user-set-password';
+
+      const slug = registerProcess
+        ? 'activate-account'
+        : 'new-user-set-password';
       const linkLabel = registerProcess ? 'Activate Account' : 'Set Password';
-      
+
       await this.sendMailToUser(userSaved, subject, link, slug, linkLabel);
 
       return userSaved;
@@ -219,6 +210,7 @@ export class AuthService {
     const usernameIPkey = `${userLoginDto.username}_${refreshTokenPayload.ip}`;
     const resUsernameAndIP = await this.rateLimiter.get(usernameIPkey);
     let retrySecs = 0;
+
     // Check if user is already blocked
     if (
       resUsernameAndIP !== null &&
@@ -226,6 +218,7 @@ export class AuthService {
     ) {
       retrySecs = Math.round(resUsernameAndIP.msBeforeNext / 1000) || 1;
     }
+
     if (retrySecs > 0) {
       throw new CustomHttpException(
         `tooManyRequest-{"second":"${String(retrySecs)}"}`,
@@ -240,6 +233,7 @@ export class AuthService {
       const [result, throttleError] = await this.limitConsumerPromiseHandler(
         usernameIPkey,
       );
+
       if (!result) {
         throw new CustomHttpException(
           `tooManyRequest-{"second":${String(
@@ -255,6 +249,7 @@ export class AuthService {
 
     const accessToken = await this.generateAccessToken(user);
     let refreshToken = null;
+
     if (userLoginDto.remember) {
       refreshToken = await this.refreshTokenService.generateRefreshToken(
         user,
@@ -262,6 +257,7 @@ export class AuthService {
       );
     }
     await this.rateLimiter.delete(usernameIPkey);
+
     return this.buildResponsePayload(accessToken, refreshToken);
   }
 
@@ -280,42 +276,45 @@ export class AuthService {
     //     ...adminUserGroupsForSerializing
     //   ]
     // });
-    const user = await this.repository.findOne(id, {role: true});
+    const user = await this.userRepository.findOne(id, { role: true });
     const errorPayload: ValidationPayloadInterface[] = [];
-    
+
     if (updateUserDto.email) {
-      const newEmail = await this.repository.findBy(
+      const newEmail = await this.userRepository.findBy(
         'email',
         updateUserDto.email,
-        );
-        if (newEmail) {
-          errorPayload.push({
-            property: 'email',
-            constraints: {
-              unique: 'already taken',
-            },
-          });
-        }
+      );
+
+      if (newEmail) {
+        errorPayload.push({
+          property: 'email',
+          constraints: {
+            unique: 'already taken',
+          },
+        });
       }
-      if (updateUserDto.username) {        
-        const newUsername = await this.repository.findBy(
-          'username',
-          updateUserDto.username,
-          );
-        if (newUsername) {
-          errorPayload.push({
-            property: 'username',
-            constraints: {
-              unique: 'already taken',
-            },
-          });
-        }
+    }
+
+    if (updateUserDto.username) {
+      const newUsername = await this.userRepository.findBy(
+        'username',
+        updateUserDto.username,
+      );
+
+      if (newUsername) {
+        errorPayload.push({
+          property: 'username',
+          constraints: {
+            unique: 'already taken',
+          },
+        });
       }
-        
-        if (Object.keys(errorPayload).length > 0) {
-          throw new UnprocessableEntityException(errorPayload);
-        }
-    // TODO 
+    }
+
+    if (Object.keys(errorPayload).length > 0) {
+      throw new UnprocessableEntityException(errorPayload);
+    }
+    // TODO
     // if (updateUserDto.avatar && user.avatar) {
     //   const path = `public/images/profile/${user.avatar}`;
     //   if (existsSync(path)) {
@@ -323,7 +322,7 @@ export class AuthService {
     //   }
     // }
     // user.update(updateUserDto);
-    const userSaved = await this.repository.update(user.id, updateUserDto);
+    const userSaved = await this.userRepository.update(user.id, updateUserDto);
 
     return userSaved;
   }
@@ -336,12 +335,11 @@ export class AuthService {
     userLoginDto: UserLoginDto,
   ): Promise<[user: UserSerializer, error: string, code: number]> {
     const { username, password } = userLoginDto;
-    const user = await this.repository.findBy(
-      'username',
-      username);
+    const user = await this.userRepository.findBy('username', username);
 
     if (user) {
       const hash = await bcrypt.hash(password, user.salt);
+
       if (user && hash === user.password) {
         if (user.status !== UserStatusEnum.ACTIVE) {
           return [
@@ -350,9 +348,11 @@ export class AuthService {
             StatusCodesList.UserInactive,
           ];
         }
+
         return [user, null, null];
       }
     }
+
     return [
       null,
       ExceptionTitleList.InvalidCredentials,
@@ -365,10 +365,12 @@ export class AuthService {
    * @param token
    */
   async activateAccount(token: string): Promise<void> {
-    const user = await this.userRepository.findByToken(token);
+    const user = await this.userRepository.findBy('token', token);
+
     if (!user) {
       throw new NotFoundException();
     }
+
     if (user.status !== UserStatusEnum.INACTIVE) {
       throw new ForbiddenException(
         ExceptionTitleList.UserInactive,
@@ -378,7 +380,7 @@ export class AuthService {
     user.status = UserStatusEnum.ACTIVE;
     user.token = await this.generateUniqueToken(6);
     user.skipHashPassword = true;
-    await this.userRepository.update(user);
+    await this.userRepository.update(user.id, user);
   }
 
   /**
@@ -409,8 +411,9 @@ export class AuthService {
     // return this.userRepository.transform(user, {
     //   groups: ownerUserGroupsForSerializing
     // });
-    const userSaved = await this.userRepository.findById(user.id);
-    return this.transform(userSaved);
+    const userSaved = await this.userRepository.findOne(user.id);
+
+    return userSaved;
   }
 
   /**
@@ -424,8 +427,9 @@ export class AuthService {
     //     ...ownerUserGroupsForSerializing
     //   ]
     // });
-    const userSaved = await this.userRepository.findById(id);
-    return this.transform(userSaved);
+    const userSaved = await this.userRepository.findOne(id);
+
+    return userSaved;
   }
 
   /**
@@ -433,8 +437,9 @@ export class AuthService {
    * @param id
    */
   async findByUsername(username: string): Promise<UserSerializer> {
-    const userSaved = await this.userRepository.findByUsername(username);
-    return this.transform(userSaved);
+    const userSaved = await this.userRepository.findBy('username', username);
+
+    return userSaved;
   }
 
   /**
@@ -457,7 +462,8 @@ export class AuthService {
     //   }
     // );
     const users = await this.userRepository.findAll();
-    return this.transformMany(users);
+
+    return users;
   }
 
   /**
@@ -467,12 +473,13 @@ export class AuthService {
   async generateUniqueToken(length: number): Promise<string> {
     const token = this.generateRandomCode(length);
 
-    const tokenCount = await this.userRepository.findByToken(token);
+    const tokenCount = await this.userRepository.findBy('token', token);
 
     // recursively find unique tokens
     if (tokenCount) {
       await this.generateUniqueToken(length);
     }
+
     return token;
   }
 
@@ -486,6 +493,7 @@ export class AuthService {
       const { token } = await this.refreshTokenService.resolveRefreshToken(
         encoded,
       );
+
       if (token) {
         token.isRevoked = true;
         await this.refreshTokenService.updateRefreshToken(token);
@@ -506,7 +514,8 @@ export class AuthService {
   async forgotPassword(forgetPasswordDto: ForgetPasswordDto): Promise<void> {
     const { email } = forgetPasswordDto;
 
-    const user = await this.userRepository.findByEmail(email);
+    const user = await this.userRepository.findBy('email,', email);
+
     if (!user) {
       return;
     }
@@ -516,10 +525,10 @@ export class AuthService {
     currentDateTime.setHours(currentDateTime.getHours() + 1);
     user.tokenValidityDate = currentDateTime;
     user.skipHashPassword = true;
-    await this.userRepository.update(user);
+    const userSerializer = await this.userRepository.update(user.id, user);
 
     const subject = 'Reset Password';
-    const userSerializer = this.transform(user);
+
     await this.sendMailToUser(
       userSerializer,
       subject,
@@ -536,13 +545,14 @@ export class AuthService {
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
     const { password } = resetPasswordDto;
     const user = await this.getUserForResetPassword(resetPasswordDto);
+
     if (!user) {
       throw new NotFoundException();
     }
     user.token = await this.generateUniqueToken(6);
     user.password = await bcrypt.hash(password, user.salt);
     // user.password = password;
-    await this.userRepository.update(user);
+    await this.userRepository.update(user.id, user);
   }
 
   /**
@@ -555,17 +565,14 @@ export class AuthService {
     changePasswordDto: ChangePasswordDto,
   ): Promise<void> {
     const { oldPassword, password } = changePasswordDto;
-    const hash = await bcrypt.hash(oldPassword, user.salt);
-    console.log(oldPassword);
-    console.log(password);
-    console.log(hash);
-    console.log(user.password);
-    // const checkOldPwdMatches = await user.validatePassword(oldPassword);
+    const hash = await bcrypt.hash(oldPassword, user.salt);    
+   
     let checkOldPwdMatches = false;
+
     if (hash === user.password) {
       checkOldPwdMatches = true;
     }
-    // FIXME
+    
     if (!checkOldPwdMatches) {
       throw new CustomHttpException(
         ExceptionTitleList.IncorrectOldPassword,
@@ -574,8 +581,10 @@ export class AuthService {
       );
     }
     user.password = await bcrypt.hash(password, user.salt);
+    delete user['role']
+    delete user['roleId']
 
-    await this.userRepository.update(user);
+    await this.userRepository.update(user.id, user);
   }
 
   /**
@@ -596,12 +605,15 @@ export class AuthService {
     const upperCaseAlphabets = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     const numericalLetters = '0123456789';
     let characters = '';
+
     if (uppercase) {
       characters += upperCaseAlphabets;
     }
+
     if (lowercase) {
       characters += lowerCaseAlphabets;
     }
+
     if (numerical) {
       characters += numericalLetters;
     }
@@ -609,6 +621,7 @@ export class AuthService {
     for (let i = 0; i < length; i++) {
       result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
+
     return result;
   }
 
@@ -625,6 +638,7 @@ export class AuthService {
       ...BASE_OPTIONS,
       subject: String(user.id),
     };
+
     return this.jwt.signAsync({
       ...opts,
       isTwoFAAuthenticated,
@@ -659,6 +673,7 @@ export class AuthService {
         !isSameSite ? 'SameSite=None; Secure;' : ''
       } Max-Age=${jwtConfig.cookieExpiresIn}`,
     ];
+
     if (refreshToken) {
       const expiration = new Date();
       expiration.setSeconds(expiration.getSeconds() + jwtConfig.expiresIn);
@@ -671,6 +686,7 @@ export class AuthService {
         } Max-Age=${jwtConfig.cookieExpiresIn}`,
       ]);
     }
+
     return tokenCookies;
   }
 
@@ -683,6 +699,7 @@ export class AuthService {
       await this.refreshTokenService.createAccessTokenFromRefreshToken(
         refreshToken,
       );
+
     return this.buildResponsePayload(token);
   }
 
@@ -703,7 +720,7 @@ export class AuthService {
    * @param id
    * @param userId
    **/
-  revokeTokenById(id: string, userId: string): Promise<RefreshTokenEntity> {
+  revokeTokenById(id: string, userId: string): Promise<RefreshTokenSerializer> {
     return this.refreshTokenService.revokeRefreshTokenById(id, userId);
   }
 
@@ -716,10 +733,11 @@ export class AuthService {
     // add one minute throttle to generate next two factor token
     const twoFAThrottleTime = new Date();
     twoFAThrottleTime.setSeconds(twoFAThrottleTime.getSeconds() + 60);
-    const user = await this.userRepository.findById(userId);
+    const user = await this.userRepository.findOne(userId);
     user.twoFASecret = secret;
     user.twoFAThrottleTime = twoFAThrottleTime;
-    return this.userRepository.update(user);
+
+    return this.userRepository.update(user.id, user);
   }
 
   /**
@@ -735,6 +753,7 @@ export class AuthService {
   ) {
     if (isTwoFAEnabled) {
       const subject = 'Activate Two Factor Authentication';
+
       const mailData: MailJobInterface = {
         to: user.email,
         subject,
@@ -756,7 +775,8 @@ export class AuthService {
       await this.mailService.sendMail(mailData, 'system-mail');
     }
     user.isTwoFAEnabled = isTwoFAEnabled;
-    return this.userRepository.update(user);
+
+    return this.userRepository.update(user.id, user);
   }
 
   /**
@@ -765,7 +785,7 @@ export class AuthService {
    */
   async getUserForResetPassword(
     resetPasswordDto: ResetPasswordDto,
-  ): Promise<UserEntity> {
+  ): Promise<UserSerializer> {
     const { token } = resetPasswordDto;
     // const query = this.createQueryBuilder('user');
     // query.where('user.token = :token', { token });
@@ -774,32 +794,12 @@ export class AuthService {
     // });
     // return query.getOne();
 
-    const user = await this.userRepository.findByToken(token);
+    const user = await this.userRepository.findBy('token', token);
+
     if (user && user.tokenValidityDate > new Date()) {
       return user;
     }
+
     return null;
-  }
-
-  /**
-   * transform role entity
-   * @param model
-   * @param transformOption
-   */
-  transform(model: UserEntity, transformOption = {}): UserSerializer {
-    return plainToInstance(
-      UserSerializer,
-      instanceToPlain(model, transformOption),
-      transformOption,
-    );
-  }
-
-  /**
-   * transform many roles collection
-   * @param models
-   * @param transformOption
-   */
-  transformMany(models: UserEntity[], transformOption = {}): UserSerializer[] {
-    return models.map((model) => this.transform(model, transformOption));
   }
 }

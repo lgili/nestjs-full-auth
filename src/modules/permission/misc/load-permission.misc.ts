@@ -22,6 +22,7 @@ export class LoadPermissionMisc {
         );
       }
     }
+
     return permissionsList;
   }
 
@@ -37,6 +38,7 @@ export class LoadPermissionMisc {
       data.description = data.description || description;
       data.isDefault = isDefault;
     }
+
     return permissionsList.concat(permission.route);
   }
 }

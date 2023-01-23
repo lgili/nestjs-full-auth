@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
-
 import { ModelSerializer } from 'src/common/serializer/model.serializer';
 
 export const basicFieldGroupsForSerializing: string[] = ['basic'];

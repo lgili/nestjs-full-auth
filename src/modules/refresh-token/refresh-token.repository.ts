@@ -8,13 +8,14 @@ import {
 } from 'class-transformer';
 import { BaseRepository } from 'src/common/repository/base.repository';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
-import { UserEntity } from 'src/modules/auth/entity/user.entity';
+import { RefreshTokenEntity } from './entities/refresh-token.entity';
+import { RefreshTokenSerializer } from './serializer/refresh-token.serializer';
 
-import { UserSerializer } from './serializer/user.serializer';
+
 
 @Injectable()
-export class UserRepository extends BaseRepository<UserEntity, UserSerializer> {
+export class RefreshTokenRepository extends BaseRepository<RefreshTokenEntity, RefreshTokenSerializer> {
   constructor(private prisma: PrismaService) {
-    super('user', prisma);
+    super('refreshToken', prisma);
   }
 }

@@ -1,18 +1,17 @@
 import { forwardRef, Module } from '@nestjs/common';
-
-import { EmailTemplateService } from 'src/modules/email-template/email-template.service';
-import { EmailTemplateController } from 'src/modules/email-template/email-template.controller';
 import { AuthModule } from 'src/modules/auth/auth.module';
-import { DatabaseModule } from './database/database.module';
+import { EmailTemplateController } from 'src/modules/email-template/email-template.controller';
+import { EmailTemplateService } from 'src/modules/email-template/email-template.service';
+
+import { EmailTemplateRepository } from './email-template.repository';
 // import { UniqueValidatorPipe } from 'src/common/pipes/unique-validator.pipe';
 
 @Module({
-  imports: [
-    DatabaseModule.register(process.env.REPOSITORY_TYPE),
+  imports: [    
     forwardRef(() => AuthModule),
   ],
   exports: [EmailTemplateService],
   controllers: [EmailTemplateController],
-  providers: [EmailTemplateService],
+  providers: [EmailTemplateService, EmailTemplateRepository],
 })
 export class EmailTemplateModule {}

@@ -1,5 +1,4 @@
 import { IsNotEmpty, Matches, MaxLength, MinLength } from 'class-validator';
-
 import { IsEqualTo } from 'src/common/decorators/is-equal-to.decorator';
 
 /**

@@ -18,14 +18,17 @@ export class PermissionGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const path = request.route.path;
     const method = request.method.toLowerCase();
+
     const permissionPayload: RoutePayloadInterface = {
       path,
       method,
     };
     const permitted = this.checkIfDefaultRoute(permissionPayload);
+
     if (permitted) {
       return true;
     }
+
     return this.checkIfUserHavePermission(request.user, permissionPayload);
   }
 
@@ -36,6 +39,7 @@ export class PermissionGuard implements CanActivate {
   checkIfDefaultRoute(permissionAgainst: RoutePayloadInterface) {
     const { path, method } = permissionAgainst;
     const defaultRoutes = PermissionConfiguration.defaultRoutes;
+
     return defaultRoutes.some(
       (route) => route.path === path && route.method === method,
     );
@@ -51,12 +55,15 @@ export class PermissionGuard implements CanActivate {
     permissionAgainst: RoutePayloadInterface,
   ) {
     const { path, method } = permissionAgainst;
+
     if (user && user.role && user.role.permissions) {
       console.log(permissionAgainst);
+
       return user.role.permissions.some(
         (route) => route.path === path && route.method === method,
       );
     }
+
     return false;
   }
 }

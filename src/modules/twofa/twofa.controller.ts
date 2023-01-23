@@ -11,14 +11,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-
-import { AuthService } from 'src/modules/auth/auth.service';
-import { UserEntity } from 'src/modules/auth/entity/user.entity';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
 import { JwtAuthGuard } from 'src/common/guard/jwt-auth.guard';
+import { AuthService } from 'src/modules/auth/auth.service';
+import { UserEntity } from 'src/modules/auth/entity/user.entity';
 import { TwofaCodeDto } from 'src/modules/twofa/dto/twofa-code.dto';
 import { TwoFaStatusUpdateDto } from 'src/modules/twofa/dto/twofa-status-update.dto';
 import { TwofaService } from 'src/modules/twofa/twofa.service';
+
 import { UserSerializer } from '../auth/serializer/user.serializer';
 
 @Controller('twofa')
@@ -45,12 +45,14 @@ export class TwofaController {
       twofaCodeDto.code,
       user,
     );
+
     if (!isCodeValid) {
       throw new UnauthorizedException('invalidOTP');
     }
     const accessToken = await this.usersService.generateAccessToken(user, true);
     const cookiePayload = this.usersService.buildResponsePayload(accessToken);
     response.setHeader('Set-Cookie', cookiePayload);
+
     return response.status(HttpStatus.NO_CONTENT).json({});
   }
 
@@ -64,10 +66,12 @@ export class TwofaController {
     user: UserEntity,
   ) {
     let qrDataUri = null;
+
     if (twofaStatusUpdateDto.isTwoFAEnabled) {
       const { otpauthUrl } = await this.twofaService.generateTwoFASecret(user);
       qrDataUri = await this.twofaService.qrDataToUrl(otpauthUrl);
     }
+
     return this.usersService.turnOnTwoFactorAuthentication(
       user,
       twofaStatusUpdateDto.isTwoFAEnabled,

@@ -1,5 +1,6 @@
-import { IsEmail, IsIn, IsString, ValidateIf } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEmail, IsIn, IsString, ValidateIf } from 'class-validator';
+
 import { UserStatusEnum } from '../user-status.enum';
 
 const statusEnumArray = [

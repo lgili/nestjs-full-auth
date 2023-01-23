@@ -3,7 +3,6 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
-
 import { AuthService } from 'src/modules/auth/auth.service';
 
 @ValidatorConstraint({ async: true })
@@ -17,6 +16,7 @@ export class IsUsernameAlreadyExist implements ValidatorConstraintInterface {
    */
   async validate(text: string) {
     const user = await this.authService.findByUsername(text);
+
     return !user;
   }
 }

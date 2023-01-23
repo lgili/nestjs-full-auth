@@ -1,28 +1,28 @@
 import { forwardRef, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-
-import { SignOptions, TokenExpiredError } from 'jsonwebtoken';
+import { instanceToPlain, plainToInstance } from 'class-transformer';
 import * as config from 'config';
-
-import { CustomHttpException } from 'src/exception/custom-http.exception';
-import { AuthService } from 'src/modules/auth/auth.service';
-import { UserSerializer } from 'src/modules/auth/serializer/user.serializer';
+import { SignOptions, TokenExpiredError } from 'jsonwebtoken';
 import { ExceptionTitleList } from 'src/common/constants/exception-title-list.constants';
 import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
+import QueryBuilder from 'src/common/repository/filter-prisma';
+import { CustomHttpException } from 'src/exception/custom-http.exception';
 import { ForbiddenException } from 'src/exception/forbidden.exception';
 import { NotFoundException } from 'src/exception/not-found.exception';
-
-import { RefreshTokenInterface } from 'src/modules/refresh-token/interface/refresh-token.interface';
-import { RefreshPaginateFilterDto } from 'src/modules/refresh-token/dto/refresh-paginate-filter.dto';
-import { PaginationInfoInterface } from 'src/modules/paginate/pagination-info.interface';
-import { RefreshTokenSerializer } from 'src/modules/refresh-token/serializer/refresh-token.serializer';
+import { AuthService } from 'src/modules/auth/auth.service';
+import { UserSerializer } from 'src/modules/auth/serializer/user.serializer';
 import { Pagination } from 'src/modules/paginate';
-import { IRefreshTokenRepository } from './i-refresh-token.repository';
+import { PaginationInfoInterface } from 'src/modules/paginate/pagination-info.interface';
+import { RefreshPaginateFilterDto } from 'src/modules/refresh-token/dto/refresh-paginate-filter.dto';
+import { RefreshTokenInterface } from 'src/modules/refresh-token/interface/refresh-token.interface';
+import { RefreshTokenSerializer } from 'src/modules/refresh-token/serializer/refresh-token.serializer';
+
 import { RefreshTokenEntity } from './entities/refresh-token.entity';
-import { instanceToPlain, plainToInstance } from 'class-transformer';
+import { RefreshTokenRepository } from './refresh-token.repository';
 
 const appConfig = config.get('app');
 const tokenConfig = config.get('jwt');
+
 const BASE_OPTIONS: SignOptions = {
   issuer: appConfig.appUrl,
   audience: appConfig.frontendUrl,
@@ -31,7 +31,7 @@ const BASE_OPTIONS: SignOptions = {
 @Injectable()
 export class RefreshTokenService {
   constructor(
-    private readonly refreshTokenRepository: IRefreshTokenRepository,
+    private readonly refreshTokenRepository: RefreshTokenRepository,
     @Inject(forwardRef(() => AuthService))
     private readonly authService: AuthService,
     private readonly jwt: JwtService,
@@ -57,6 +57,7 @@ export class RefreshTokenService {
     console.log(token);
 
     const tokenSaved = await this.refreshTokenRepository.create(token);
+
     const opts: SignOptions = {
       ...BASE_OPTIONS,
       subject: String(user.id),
@@ -77,10 +78,11 @@ export class RefreshTokenService {
    */
   public async resolveRefreshToken(encoded: string): Promise<{
     user: UserSerializer;
-    token: RefreshTokenEntity;
+    token: RefreshTokenSerializer;
   }> {
     const payload = await this.decodeRefreshToken(encoded);
     const token = await this.getStoredTokenFromRefreshTokenPayload(payload);
+
     if (!token) {
       throw new CustomHttpException(
         ExceptionTitleList.NotFound,
@@ -123,6 +125,7 @@ export class RefreshTokenService {
   }> {
     const { user } = await this.resolveRefreshToken(refresh);
     const token = await this.authService.generateAccessToken(user);
+
     return {
       user,
       token,
@@ -179,7 +182,7 @@ export class RefreshTokenService {
    */
   async getStoredTokenFromRefreshTokenPayload(
     payload: RefreshTokenInterface,
-  ): Promise<RefreshTokenEntity | null> {
+  ): Promise<RefreshTokenSerializer | null> {
     const tokenId = payload.jwtid;
 
     if (!tokenId) {
@@ -190,11 +193,11 @@ export class RefreshTokenService {
       );
     }
 
-    return this.refreshTokenRepository.findById(tokenId.toString());
+    return this.refreshTokenRepository.findOne(tokenId.toString());
   }
 
-  async updateRefreshToken(token: RefreshTokenEntity) {
-    return await this.refreshTokenRepository.update(token);
+  async updateRefreshToken(token: RefreshTokenSerializer) {
+    return await this.refreshTokenRepository.update(token.id, token);
   }
 
   /**
@@ -205,7 +208,16 @@ export class RefreshTokenService {
     userId: string,
     filter: RefreshPaginateFilterDto,
   ): Promise<RefreshTokenSerializer[]> {
-    const tokens = await this.refreshTokenRepository.findByUser(userId);
+
+    const qb = new QueryBuilder({
+      userId: userId,      
+      select: 'user',      
+    });
+
+    const findOptions = qb.filter().sort().build();
+    const tokens = await this.refreshTokenRepository.findAll(
+      findOptions,
+      userId);
 
     // const { page, skip, limit } = paginationInfo;
     // findOptions.take = paginationInfo.limit;
@@ -214,7 +226,8 @@ export class RefreshTokenService {
     //   id: 'DESC'
     // };
     // const [results, total] = await this.repository.findAndCount(findOptions);
-    const serializedResult = this.transformMany(tokens);
+    // const serializedResult = this.transformMany(tokens);
+
     // return new Pagination<RefreshTokenSerializer>({
     //   results: serializedResult,
     //   totalItems: total,
@@ -223,7 +236,7 @@ export class RefreshTokenService {
     //   previous: page > 1 ? page - 1 : 0,
     //   next: total > skip + limit ? page + 1 : 0
     // });
-    return serializedResult;
+    return tokens;
   }
 
   /**
@@ -234,16 +247,19 @@ export class RefreshTokenService {
   async revokeRefreshTokenById(
     id: string,
     userId: string,
-  ): Promise<RefreshTokenEntity> {
-    const token = await this.refreshTokenRepository.findById(id);
+  ): Promise<RefreshTokenSerializer> {
+    const token = await this.refreshTokenRepository.findOne(id);
+
     if (!token) {
       throw new NotFoundException();
     }
+
     if (token.userId !== userId) {
       throw new ForbiddenException();
     }
     token.isRevoked = true;
-    const tokenSaved = await this.refreshTokenRepository.update(token);
+    const tokenSaved = await this.refreshTokenRepository.update(token.id, token);
+
     return tokenSaved;
   }
 
@@ -256,32 +272,5 @@ export class RefreshTokenService {
   //     .groupBy(`token.${field}`)
   //     .getRawMany();
   // }
-
-  /**
-   * transform role entity
-   * @param model
-   * @param transformOption
-   */
-  transform(
-    model: RefreshTokenEntity,
-    transformOption = {},
-  ): RefreshTokenSerializer {
-    return plainToInstance(
-      RefreshTokenSerializer,
-      instanceToPlain(model, transformOption),
-      transformOption,
-    );
-  }
-
-  /**
-   * transform many roles collection
-   * @param models
-   * @param transformOption
-   */
-  transformMany(
-    models: RefreshTokenEntity[],
-    transformOption = {},
-  ): RefreshTokenSerializer[] {
-    return models.map((model) => this.transform(model, transformOption));
-  }
+  
 }

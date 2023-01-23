@@ -1,10 +1,9 @@
+import { InjectQueue } from '@nestjs/bull';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bull';
 import * as config from 'config';
-import { InjectQueue } from '@nestjs/bull';
-
-import { MailJobInterface } from 'src/modules/mail/interface/mail-job.interface';
 import { EmailTemplateService } from 'src/modules/email-template/email-template.service';
+import { MailJobInterface } from 'src/modules/mail/interface/mail-job.interface';
 
 @Injectable()
 export class MailService {
@@ -23,21 +22,25 @@ export class MailService {
     let newStr = str;
     Object.keys(obj).forEach((key) => {
       const placeHolder = `{{${key}}}`;
+
       if (newStr.includes(placeHolder)) {
         newStr = newStr.replace(placeHolder, obj[key] || ' ');
       }
     });
+
     return newStr;
   }
 
   async sendMail(payload: MailJobInterface, type: string): Promise<boolean> {
     const mailBody = await this.emailTemplateService.findBySlug(payload.slug);
     payload.context.content = this.stringInject(mailBody.body, payload.context);
+
     if (mailBody) {
       try {
         await this.mailQueue.add(type, {
           payload,
         });
+
         return true;
       } catch (error) {
         return false;

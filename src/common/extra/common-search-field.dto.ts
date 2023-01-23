@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, Min, ValidateIf } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { IsString, Min, ValidateIf } from 'class-validator';
 
 export class CommonSearchFieldDto {
   @ApiPropertyOptional()

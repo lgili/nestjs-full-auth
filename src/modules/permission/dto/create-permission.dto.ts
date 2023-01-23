@@ -5,7 +5,6 @@ import {
   MaxLength,
   Validate,
 } from 'class-validator';
-
 import { MethodList } from 'src/config/permission-config';
 import { PermissionEntity } from 'src/modules/permission/entities/permission.entity';
 

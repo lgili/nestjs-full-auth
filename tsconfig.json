@@ -9,10 +9,7 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
-    "incremental": true,
-    "lib": [
-      "es5", "es6", "dom", "dom.iterable"
-    ]
+    "incremental": true,    
   },
-  "exclude": ["build", "dist"]
+  "exclude": []
 }

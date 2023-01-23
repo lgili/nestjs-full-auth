@@ -3,11 +3,11 @@ import * as config from 'config';
 import { Response } from 'express';
 import { authenticator } from 'otplib';
 import { toFileStream, toDataURL } from 'qrcode';
-
 import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
+import { CustomHttpException } from 'src/exception/custom-http.exception';
 import { AuthService } from 'src/modules/auth/auth.service';
 import { UserEntity } from 'src/modules/auth/entity/user.entity';
-import { CustomHttpException } from 'src/exception/custom-http.exception';
+
 import { UserSerializer } from '../auth/serializer/user.serializer';
 
 const TwofaConfig = config.get('twofa');
@@ -28,12 +28,14 @@ export class TwofaService {
       );
     }
     const secret = authenticator.generateSecret();
+
     const otpauthUrl = authenticator.keyuri(
       user.email,
       TwofaConfig.authenticationAppNAme,
       secret,
     );
     await this.usersService.setTwoFactorAuthenticationSecret(secret, user.id);
+
     return {
       secret,
       otpauthUrl,
@@ -57,6 +59,7 @@ export class TwofaService {
 
   differentBetweenDatesInSec(initialDate: Date, endDate: Date): number {
     const diffInSeconds = Math.abs(initialDate.getTime() - endDate.getTime());
+
     return Math.round(diffInSeconds / 1000);
   }
 }

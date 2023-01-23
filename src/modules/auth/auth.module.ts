@@ -1,26 +1,25 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { PassportModule } from '@nestjs/passport';
-
 import { JwtModule } from '@nestjs/jwt';
-import Redis from 'ioredis';
+import { PassportModule } from '@nestjs/passport';
 import * as config from 'config';
-
-import { AuthController } from 'src/modules/auth/auth.controller';
-import { AuthService } from 'src/modules/auth/auth.service';
+import Redis from 'ioredis';
 // import { UserRepository } from 'src/modules/auth/user.repository';
 // import { UniqueValidatorPipe } from 'src/common/pipes/unique-validator.pipe';
-import { MailModule } from 'src/modules/mail/mail.module';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
-import { RefreshTokenModule } from 'src/modules/refresh-token/refresh-token.module';
 import { JwtTwoFactorStrategy } from 'src/common/strategy/jwt-two-factor.strategy';
 import { JwtStrategy } from 'src/common/strategy/jwt.strategy';
-import { DatabaseModule } from './database/database.module';
+import { AuthController } from 'src/modules/auth/auth.controller';
+import { AuthService } from 'src/modules/auth/auth.service';
+import { MailModule } from 'src/modules/mail/mail.module';
+import { RefreshTokenModule } from 'src/modules/refresh-token/refresh-token.module';
+
 import { RolesModule } from '../role/roles.module';
-import { UserPrismaRepository } from './user.repository';
+import { UserRepository } from './user.repository';
 
 const throttleConfig = config.get('throttle.login');
 const redisConfig = config.get('queue');
 const jwtConfig = config.get('jwt');
+
 const LoginThrottleFactory = {
   provide: 'LOGIN_THROTTLE',
   useFactory: () => {
@@ -54,7 +53,6 @@ const LoginThrottleFactory = {
     PassportModule.register({
       defaultStrategy: 'jwt',
     }),
-    DatabaseModule.register(process.env.REPOSITORY_TYPE),
     MailModule,
     forwardRef(() => RolesModule),
     RefreshTokenModule,
@@ -66,7 +64,7 @@ const LoginThrottleFactory = {
     JwtStrategy,
     // UniqueValidatorPipe,
     LoginThrottleFactory,
-    UserPrismaRepository,
+    UserRepository,
   ],
   exports: [
     AuthService,
@@ -74,7 +72,6 @@ const LoginThrottleFactory = {
     JwtStrategy,
     PassportModule,
     JwtModule,
-
   ],
 })
 export class AuthModule {}

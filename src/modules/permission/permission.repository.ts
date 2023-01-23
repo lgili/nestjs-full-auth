@@ -8,13 +8,13 @@ import {
 } from 'class-transformer';
 import { BaseRepository } from 'src/common/repository/base.repository';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
-import { UserEntity } from 'src/modules/auth/entity/user.entity';
+import { PermissionEntity } from './entities/permission.entity';
+import { PermissionSerializer } from './serializer/permission.serializer';
 
-import { UserSerializer } from './serializer/user.serializer';
 
 @Injectable()
-export class UserRepository extends BaseRepository<UserEntity, UserSerializer> {
+export class PermissionRepository extends BaseRepository<PermissionEntity, PermissionSerializer> {
   constructor(private prisma: PrismaService) {
-    super('user', prisma);
+    super('permission', prisma);
   }
 }

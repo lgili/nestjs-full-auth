@@ -1,25 +1,25 @@
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
-
+import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { CommonServiceInterface } from 'src/common/interfaces/common-service.interface';
 import {
   PermissionConfiguration,
   RoutePayloadInterface,
 } from 'src/config/permission-config';
+import { Pagination } from 'src/modules/paginate';
 import { CreatePermissionDto } from 'src/modules/permission/dto/create-permission.dto';
 import { PermissionFilterDto } from 'src/modules/permission/dto/permission-filter.dto';
 import { UpdatePermissionDto } from 'src/modules/permission/dto/update-permission.dto';
 import { PermissionEntity } from 'src/modules/permission/entities/permission.entity';
 import { LoadPermissionMisc } from 'src/modules/permission/misc/load-permission.misc';
 import { PermissionSerializer } from 'src/modules/permission/serializer/permission.serializer';
-import { Pagination } from 'src/modules/paginate';
 import { basicFieldGroupsForSerializing } from 'src/modules/role/serializer/role.serializer';
-import { IPermissionRepository } from './i-permission.repository';
-import { instanceToPlain, plainToInstance } from 'class-transformer';
+
+import { PermissionRepository } from './permission.repository';
 
 @Injectable()
 /*implements CommonServiceInterface<Permission>*/
 export class PermissionsService extends LoadPermissionMisc {
-  constructor(private permissionRepository: IPermissionRepository) {
+  constructor(private permissionRepository: PermissionRepository) {
     super();
   }
 
@@ -33,7 +33,8 @@ export class PermissionsService extends LoadPermissionMisc {
     const perEntity = new PermissionEntity(createPermissionDto);
     perEntity.isDefault = true;
     const permission = await this.permissionRepository.create(perEntity);
-    return this.transform(permission);
+
+    return permission;
   }
 
   /**
@@ -62,7 +63,7 @@ export class PermissionsService extends LoadPermissionMisc {
         }
       }
     }
-    const permissionsSaved: PermissionEntity[] = [];
+    const permissionsSaved: PermissionSerializer[] = [];
     permissionsList.forEach(async (permissions) => {
       const perEntity = plainToInstance(
         PermissionEntity,
@@ -94,7 +95,8 @@ export class PermissionsService extends LoadPermissionMisc {
     //   }
     // );
     const result = await this.permissionRepository.findAll();
-    return this.transformMany(result);
+
+    return result;
   }
 
   /**
@@ -105,8 +107,9 @@ export class PermissionsService extends LoadPermissionMisc {
     // return this.repository.get(id, [], {
     //   groups: [...basicFieldGroupsForSerializing]
     // });
-    const permission = await this.permissionRepository.findById(id);
-    return this.transform(permission);
+    const permission = await this.permissionRepository.findOne(id);
+
+    return permission;
   }
 
   /**
@@ -118,7 +121,7 @@ export class PermissionsService extends LoadPermissionMisc {
     id: string,
     updatePermissionDto: UpdatePermissionDto,
   ): Promise<PermissionSerializer> {
-    const permission = await this.permissionRepository.findById(id);
+    const permission = await this.permissionRepository.findOne(id);
 
     // if (countSameDescription > 0) {
     //   throw new UnprocessableEntityException({
@@ -128,13 +131,16 @@ export class PermissionsService extends LoadPermissionMisc {
     //     }
     //   });
     // }
-    console.log(permission);
+    // console.log(permission);
     permission.update(updatePermissionDto);
-    console.log(permission);
+    // console.log(permission);
+
     const updatedPermission = await this.permissionRepository.update(
+      permission.id,
       permission,
     );
-    return this.transform(updatedPermission);
+
+    return updatedPermission;
   }
 
   /**
@@ -150,34 +156,21 @@ export class PermissionsService extends LoadPermissionMisc {
    * @param ids
    */
   async whereInIds(ids: string[]): Promise<PermissionEntity[]> {
-    return this.permissionRepository.findSeveralById(ids);
+    const permission:PermissionEntity[] = []
+    ids.forEach(async (id) => {
+      const result = await this.permissionRepository.findOne(id)
+      if(result){
+        const toSave = plainToInstance(
+          PermissionEntity,
+          instanceToPlain(result)         
+        );
+        permission.push(toSave)
+      }
+    })
+    return permission;
   }
 
-  /**
-   * transform permission entity
-   * @param model
-   * @param transformOption
-   */
-  transform(
-    model: PermissionEntity,
-    transformOption = {},
-  ): PermissionSerializer {
-    return plainToInstance(
-      PermissionSerializer,
-      instanceToPlain(model, transformOption),
-      transformOption,
-    );
-  }
+  
 
-  /**
-   * transform many permission collection
-   * @param models
-   * @param transformOption
-   */
-  transformMany(
-    models: PermissionEntity[],
-    transformOption = {},
-  ): PermissionSerializer[] {
-    return models.map((model) => this.transform(model, transformOption));
-  }
+  
 }

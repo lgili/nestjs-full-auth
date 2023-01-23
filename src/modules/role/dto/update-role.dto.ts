@@ -1,6 +1,5 @@
-import { IsString, MaxLength, MinLength, ValidateIf } from 'class-validator';
 import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-
+import { IsString, MaxLength, MinLength, ValidateIf } from 'class-validator';
 import { CreateRoleDto } from 'src/modules/role/dto/create-role.dto';
 
 export class UpdateRoleDto extends PartialType(CreateRoleDto) {

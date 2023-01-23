@@ -19,29 +19,28 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
-import { UAParser } from 'ua-parser-js';
-
+import { GetUser } from 'src/common/decorators/get-user.decorator';
+import JwtTwoFactorGuard from 'src/common/guard/jwt-two-factor.guard';
+import { PermissionGuard } from 'src/common/guard/permission.guard';
+import { multerOptionsHelper } from 'src/common/helper/multer-options.helper';
 import { AuthService } from 'src/modules/auth/auth.service';
 import { CreateUserDto } from 'src/modules/auth/dto/create-user.dto';
 import { RegisterUserDto } from 'src/modules/auth/dto/register-user.dto';
 import { UpdateUserDto } from 'src/modules/auth/dto/update-user.dto';
 import { UserSearchFilterDto } from 'src/modules/auth/dto/user-search-filter.dto';
 import { UserEntity } from 'src/modules/auth/entity/user.entity';
-
-import { GetUser } from 'src/common/decorators/get-user.decorator';
-import { multerOptionsHelper } from 'src/common/helper/multer-options.helper';
 import { Pagination } from 'src/modules/paginate';
-import { UserSerializer } from './serializer/user.serializer';
-import { UserLoginDto } from './dto/user-login.dto';
-import { RefreshTokenEntity } from '../refresh-token/entities/refresh-token.entity';
-import { PermissionGuard } from 'src/common/guard/permission.guard';
-import JwtTwoFactorGuard from 'src/common/guard/jwt-two-factor.guard';
+import { UAParser } from 'ua-parser-js';
+
 import { RefreshPaginateFilterDto } from '../refresh-token/dto/refresh-paginate-filter.dto';
+import { RefreshTokenEntity } from '../refresh-token/entities/refresh-token.entity';
 import { RefreshTokenSerializer } from '../refresh-token/serializer/refresh-token.serializer';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ForgetPasswordDto } from './dto/forget-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
+import { UserLoginDto } from './dto/user-login.dto';
+import { UserSerializer } from './serializer/user.serializer';
 
 @ApiTags('user')
 @Controller()
@@ -50,7 +49,7 @@ export class AuthController {
 
   @UseInterceptors(ClassSerializerInterceptor)
   @Post('test')
-  test(registerUserDto: RegisterUserDto): Promise<Pagination<UserSerializer>>{
+  test(registerUserDto: RegisterUserDto): Promise<Pagination<UserSerializer>> {
     return this.authService.test(registerUserDto);
   }
 
@@ -73,17 +72,20 @@ export class AuthController {
     userLoginDto: UserLoginDto,
   ) {
     const ua = UAParser(req.headers['user-agent']);
+
     const refreshTokenPayload: Partial<RefreshTokenEntity> = {
       ip: req.ip,
       userAgent: JSON.stringify(ua),
       browser: ua.browser.name,
       os: ua.os.name,
     };
+
     const cookiePayload = await this.authService.login(
       userLoginDto,
       refreshTokenPayload,
     );
     response.setHeader('Set-Cookie', cookiePayload);
+
     return response.status(HttpStatus.NO_CONTENT).json({});
   }
 
@@ -129,9 +131,11 @@ export class AuthController {
           req.cookies['Refresh'],
         );
       response.setHeader('Set-Cookie', cookiePayload);
+
       return response.status(HttpStatus.NO_CONTENT).json({});
     } catch (e) {
       response.setHeader('Set-Cookie', this.authService.getCookieForLogOut());
+
       return response.sendStatus(HttpStatus.BAD_REQUEST);
     }
   }
@@ -143,6 +147,7 @@ export class AuthController {
     token: string,
   ): Promise<void> {
     console.log(token);
+
     return this.authService.activateAccount(token);
   }
 
@@ -192,6 +197,7 @@ export class AuthController {
     if (file) {
       updateUserDto.avatar = file.filename;
     }
+
     return this.authService.update(user.id, updateUserDto);
   }
 
@@ -226,9 +232,11 @@ export class AuthController {
       const cookie = req.cookies['Refresh'];
       response.setHeader('Set-Cookie', this.authService.getCookieForLogOut());
       const refreshCookie = req.cookies['Refresh'];
+
       if (refreshCookie) {
         await this.authService.revokeRefreshToken(cookie);
       }
+
       return response.sendStatus(HttpStatus.NO_CONTENT);
     } catch (e) {
       return response.sendStatus(HttpStatus.NO_CONTENT);

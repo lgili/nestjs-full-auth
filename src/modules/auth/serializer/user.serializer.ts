@@ -1,14 +1,13 @@
-import { Exclude, Expose, Transform, Type } from 'class-transformer';
 import {
   ApiHideProperty,
   ApiProperty,
   ApiPropertyOptional,
 } from '@nestjs/swagger';
-
+import { Exclude, Expose, Transform, Type } from 'class-transformer';
+import { DeepPartial } from 'src/common/repository/type.repository';
 import { ModelSerializer } from 'src/common/serializer/model.serializer';
 import { UserStatusEnum } from 'src/modules/auth/user-status.enum';
 import { RoleSerializer } from 'src/modules/role/serializer/role.serializer';
-import { DeepPartial } from 'src/common/repository/type.repository';
 
 export const adminUserGroupsForSerializing: string[] = ['admin'];
 export const ownerUserGroupsForSerializing: string[] = ['owner'];
@@ -19,7 +18,10 @@ export const defaultUserGroupsForSerializing: string[] = ['timestamps'];
  */
 export class UserSerializer extends ModelSerializer {
   @Expose({
-    groups: [...ownerUserGroupsForSerializing, ...adminUserGroupsForSerializing]
+    groups: [
+      ...ownerUserGroupsForSerializing,
+      ...adminUserGroupsForSerializing,
+    ],
   })
   id: string;
 
@@ -85,7 +87,6 @@ export class UserSerializer extends ModelSerializer {
     groups: defaultUserGroupsForSerializing,
   })
   updatedAt: Date;
-
 
   async update(data?: DeepPartial<UserSerializer>) {
     if (data) {

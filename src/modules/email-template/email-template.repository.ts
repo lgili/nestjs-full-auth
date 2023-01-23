@@ -8,13 +8,13 @@ import {
 } from 'class-transformer';
 import { BaseRepository } from 'src/common/repository/base.repository';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
-import { UserEntity } from 'src/modules/auth/entity/user.entity';
+import { EmailTemplateEntity } from './entities/email-template.entity';
+import { EmailTemplateSerializer } from './serializer/email-template.serializer';
 
-import { UserSerializer } from './serializer/user.serializer';
 
 @Injectable()
-export class UserRepository extends BaseRepository<UserEntity, UserSerializer> {
+export class EmailTemplateRepository extends BaseRepository<EmailTemplateEntity, EmailTemplateSerializer> {
   constructor(private prisma: PrismaService) {
-    super('user', prisma);
+    super('emailTemplate', prisma);
   }
 }

@@ -1,4 +1,3 @@
-import { I18nService } from 'nestjs-i18n';
 import {
   ArgumentsHost,
   Catch,
@@ -8,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { I18nService } from 'nestjs-i18n';
 import { Logger } from 'winston';
 
 @Catch(HttpException)

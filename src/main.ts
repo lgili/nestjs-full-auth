@@ -1,16 +1,15 @@
-import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
-import { useContainer } from 'class-validator';
-import * as config from 'config';
-import helmet from 'helmet';
+import { NestFactory } from '@nestjs/core';
 import {
   DocumentBuilder,
   SwaggerCustomOptions,
   SwaggerModule,
 } from '@nestjs/swagger';
+import { useContainer } from 'class-validator';
+import * as config from 'config';
 import * as cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
-
 import { AppModule } from 'src/app.module';
 
 async function bootstrap() {
@@ -25,18 +24,21 @@ async function bootstrap() {
   app.use(helmet());
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   const apiConfig = config.get('app');
+
   if (process.env.NODE_ENV === 'development') {
     app.enableCors({
       origin: true,
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
       credentials: true,
     });
+
     const swaggerConfig = new DocumentBuilder()
       .setTitle(apiConfig.name)
       .setDescription(apiConfig.description)
       .setVersion(apiConfig.version)
       .addBearerAuth()
       .build();
+
     const customOptions: SwaggerCustomOptions = {
       swaggerOptions: {
         persistAuthorization: true,

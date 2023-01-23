@@ -1,26 +1,25 @@
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
-
+import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { CommonServiceInterface } from 'src/common/interfaces/common-service.interface';
 import { NotFoundException } from 'src/exception/not-found.exception';
-import { PermissionsService } from 'src/modules/permission/permissions.service';
 import { Pagination } from 'src/modules/paginate';
+import { PermissionsService } from 'src/modules/permission/permissions.service';
 import { CreateRoleDto } from 'src/modules/role/dto/create-role.dto';
 import { RoleFilterDto } from 'src/modules/role/dto/role-filter.dto';
 import { UpdateRoleDto } from 'src/modules/role/dto/update-role.dto';
-
 import {
   adminUserGroupsForSerializing,
   basicFieldGroupsForSerializing,
   RoleSerializer,
 } from 'src/modules/role/serializer/role.serializer';
-import { IRoleRepository } from './i-role.repository';
+
 import { RoleEntity } from './entities/role.entity';
-import { instanceToPlain, plainToInstance } from 'class-transformer';
+import { RoleRepository } from './role.repository';
 
 @Injectable()
 export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ {
   constructor(
-    private roleRepository: IRoleRepository,
+    private roleRepository: RoleRepository,
     private readonly permissionsService: PermissionsService,
   ) {}
 
@@ -32,6 +31,7 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     if (ids && ids.length > 0) {
       return await this.permissionsService.whereInIds(ids);
     }
+
     return [];
   }
 
@@ -40,7 +40,9 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
    * @param name
    */
   async findByName(name: string) {
-    return await this.roleRepository.findByName(name);
+    return await this.roleRepository.findBy(
+      'name',
+      name);
   }
 
   /**
@@ -51,8 +53,10 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     const { permissions } = createRoleDto;
     const permission = await this.getPermissionByIds(permissions);
     const role = new RoleEntity(createRoleDto);
-    const roleSaved = await this.roleRepository.create(role, permission);
-    return this.transform(roleSaved);
+    role.permissions = permission;
+    const roleSaved = await this.roleRepository.create(role);
+
+    return roleSaved;
   }
 
   /**
@@ -72,7 +76,8 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     //   }
     // );
     const roles = await this.roleRepository.findAll();
-    return this.transformMany(roles);
+
+    return roles;
   }
 
   /**
@@ -86,8 +91,9 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     //     ...basicFieldGroupsForSerializing
     //   ]
     // });
-    const role = await this.roleRepository.findById(id);
-    return this.transform(role);
+    const role = await this.roleRepository.findOne(id);
+
+    return role;
   }
 
   /**
@@ -99,7 +105,8 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     id: string,
     updateRoleDto: UpdateRoleDto,
   ): Promise<RoleSerializer> {
-    const role = await this.roleRepository.findById(id);
+    const role = await this.roleRepository.findOne(id);
+
     if (!role) {
       throw new NotFoundException();
     }
@@ -116,8 +123,9 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     const permission = await this.getPermissionByIds(permissions);
     role.update(updateRoleDto);
     // FIXME: need to update permissions too
-    const roles = await this.roleRepository.update(role);
-    return this.transform(roles);
+    const roleUpdated = await this.roleRepository.update(role.id, role);
+
+    return roleUpdated;
   }
 
   /**
@@ -129,25 +137,5 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     await this.roleRepository.delete(id);
   }
 
-  /**
-   * transform role entity
-   * @param model
-   * @param transformOption
-   */
-  transform(model: RoleEntity, transformOption = {}): RoleSerializer {
-    return plainToInstance(
-      RoleSerializer,
-      instanceToPlain(model, transformOption),
-      transformOption,
-    );
-  }
-
-  /**
-   * transform many roles collection
-   * @param models
-   * @param transformOption
-   */
-  transformMany(models: RoleEntity[], transformOption = {}): RoleSerializer[] {
-    return models.map((model) => this.transform(model, transformOption));
-  }
+  
 }

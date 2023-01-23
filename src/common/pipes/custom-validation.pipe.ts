@@ -15,10 +15,12 @@ export class CustomValidationPipe implements PipeTransform<any> {
     }
     const object = plainToClass(metatype, value);
     const errors = await validate(object);
+
     if (errors && errors.length > 0) {
       const translatedError = await this.transformError(errors);
       throw new UnprocessableEntityException(translatedError);
     }
+
     return value;
   }
 
@@ -30,11 +32,13 @@ export class CustomValidationPipe implements PipeTransform<any> {
         constraints: error.constraints,
       });
     }
+
     return data;
   }
 
   private toValidate(metatype: unknown): boolean {
     const types: unknown[] = [String, Boolean, Number, Array, Object];
+
     return !types.includes(metatype);
   }
 }

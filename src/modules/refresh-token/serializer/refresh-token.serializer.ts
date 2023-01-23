@@ -5,7 +5,7 @@ export class RefreshTokenSerializer extends ModelSerializer {
   id: string;
 
   @ApiProperty()
-  userId: number;
+  userId: string;
 
   @ApiProperty()
   ip: string;
