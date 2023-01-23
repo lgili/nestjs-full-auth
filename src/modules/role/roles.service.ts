@@ -56,7 +56,7 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     role.permissions = permission;
     const roleSaved = await this.roleRepository.create(role);
 
-    return roleSaved;
+    return this.transform(roleSaved);
   }
 
   /**
@@ -77,7 +77,7 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     // );
     const roles = await this.roleRepository.findAll();
 
-    return roles;
+    return this.transformMany(roles);
   }
 
   /**
@@ -93,7 +93,7 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     // });
     const role = await this.roleRepository.findOne(id);
 
-    return role;
+    return this.transform(role);
   }
 
   /**
@@ -125,7 +125,7 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     // FIXME: need to update permissions too
     const roleUpdated = await this.roleRepository.update(role.id, role);
 
-    return roleUpdated;
+    return this.transform(roleUpdated);
   }
 
   /**
@@ -138,4 +138,21 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
   }
 
   
+  /**
+   * transform entity
+   * @param model
+   * @param transformOptions
+   */
+  transform(model: RoleEntity, transformOptions = {}): RoleSerializer { 
+    return plainToInstance(RoleSerializer, model, transformOptions) ;
+  }
+
+  /**
+   * transform array of entity
+   * @param models
+   * @param transformOptions
+   */
+  transformMany(models: RoleEntity[], transformOptions = {}): RoleSerializer[] {
+    return models.map((model) => this.transform(model, transformOptions));
+  }
 }

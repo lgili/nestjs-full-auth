@@ -1,19 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { User as PersistenceUser } from '@prisma/client';
-import {
-  classToPlain,
-  instanceToPlain,
-  plainToClass,
-  plainToInstance,
-} from 'class-transformer';
+
 import { BaseRepository } from 'src/common/repository/base.repository';
 import { PrismaService } from 'src/infra/database/prisma/prisma.service';
 import { UserEntity } from 'src/modules/auth/entity/user.entity';
 
-import { UserSerializer } from './serializer/user.serializer';
-
 @Injectable()
-export class UserRepository extends BaseRepository<UserEntity, UserSerializer> {
+export class UserRepository extends BaseRepository<UserEntity> {
   constructor(private prisma: PrismaService) {
     super('user', prisma);
   }

@@ -1,22 +1,23 @@
 // import { PrismaService } from '../database/config.database';
 import { PrismaClient } from '@prisma/client';
-import { plainToInstance } from 'class-transformer';
 import { NotFoundException } from 'src/exception/not-found.exception';
 import { Pagination } from 'src/modules/paginate';
 
-import { ModelSerializer } from '../serializer/model.serializer';
-import { DeepPartial, ObjectLiteral, Repository } from './type.repository';
 
-export abstract class BaseRepository<T, K extends ModelSerializer>
-  implements Repository<T, K>
+import { DeepPartial, Repository } from './type.repository';
+
+export abstract class BaseRepository<Entity>
+  implements Repository<Entity>
 {
   private readonly ORM: PrismaClient;
   private readonly table_name: string;
+  
+  
   protected constructor(tablename: string, ORM: PrismaClient) {
     this.ORM = ORM;
     this.table_name = tablename;
   }
-  create(data: T): Promise<K | null> {
+  create(data: Entity): Promise<Entity | null> {
     return this.ORM[this.table_name.toString()].create({ data });
   }
 
@@ -28,7 +29,7 @@ export abstract class BaseRepository<T, K extends ModelSerializer>
     });
   }
 
-  update(id: string, data: DeepPartial<T>): Promise<K | null> {
+  update(id: string, data: DeepPartial<Entity>): Promise<Entity | null> {
     return this.ORM[this.table_name.toString()].update({
       where: {
         id: id,
@@ -39,16 +40,15 @@ export abstract class BaseRepository<T, K extends ModelSerializer>
 
   async findAll(
     findOptions = {},
-    include?,
-    transformOptions = {},
-  ): Promise<K[]> {
+    include?
+  ): Promise<Entity[]> {
     try {
       const results = await this.ORM[this.table_name.toString()].findMany({
         ...findOptions,
         include,
       });
 
-      return this.transformMany(results, transformOptions);
+      return results;
     } catch (error) {
       console.log(error);
 
@@ -64,9 +64,8 @@ export abstract class BaseRepository<T, K extends ModelSerializer>
    */
   async findAndCount(
     findOptions = {},
-    include?,
-    transformOptions = {},
-  ): Promise<[T[], number]> {
+    include?
+  ): Promise<[Entity[], number]> {
     try {
       const results = await this.ORM[this.table_name.toString()].findMany({
         ...findOptions,
@@ -87,7 +86,7 @@ export abstract class BaseRepository<T, K extends ModelSerializer>
    * @param include
    * @param transformOptions
    */
-  findOne(id: string, include?, transformOptions = {}): Promise<K | null> {
+  findOne(id: string, include?): Promise<Entity | null> {
     return this.ORM[this.table_name.toString()]
       .findFirst({
         where: {
@@ -99,14 +98,15 @@ export abstract class BaseRepository<T, K extends ModelSerializer>
         if (!entity) {
           return Promise.reject(new NotFoundException());
         }
-
+        
         return Promise.resolve(
-          entity ? this.transform(entity, transformOptions) : null,
+          entity ? entity : null,
         );
       })
       .catch((error) => Promise.reject(error));
   }
 
+  
   /**
    * find by condition
    * @param fieldName
@@ -117,9 +117,8 @@ export abstract class BaseRepository<T, K extends ModelSerializer>
   async findBy(
     fieldName: string,
     value: any,
-    include?,
-    transformOptions = {},
-  ): Promise<K | null> {
+    include?
+  ): Promise<Entity | null> {
     return this.ORM[this.table_name.toString()]
       .findFirst({
         where: {
@@ -133,7 +132,7 @@ export abstract class BaseRepository<T, K extends ModelSerializer>
         }
 
         return Promise.resolve(
-          entity ? this.transform(entity, transformOptions) : null,
+          entity ? entity : null,
         );
       })
       .catch((error) => Promise.reject(error));
@@ -154,44 +153,7 @@ export abstract class BaseRepository<T, K extends ModelSerializer>
       .catch((error) => Promise.reject(error));
   }
 
-  // need to test more
-  async paginate(
-    findOptions: { take: number; skip: number },
-    include?,
-    transformOptions = {},
-  ): Promise<Pagination<K>> {
-    const [results, total] = await this.findAndCount(findOptions);
-    const serializedResult = this.transformMany(results, transformOptions);
+  
 
-    const limit = findOptions.take;
-    const skip = findOptions.skip + 1;
-    const page = findOptions.skip + 1;
-
-    return new Pagination<K>({
-      results: serializedResult,
-      totalItems: total,
-      pageSize: limit,
-      currentPage: page,
-      previous: page > 1 ? page - 1 : 0,
-      next: total > skip + limit ? page + 1 : 0,
-    });
-  }
-
-  /**
-   * transform entity
-   * @param model
-   * @param transformOptions
-   */
-  transform(model: T, transformOptions = {}): K {
-    return plainToInstance(ModelSerializer, model, transformOptions) as K;
-  }
-
-  /**
-   * transform array of entity
-   * @param models
-   * @param transformOptions
-   */
-  transformMany(models: T[], transformOptions = {}): K[] {
-    return models.map((model) => this.transform(model, transformOptions));
-  }
+  
 }

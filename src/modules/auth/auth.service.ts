@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { instanceToPlain, plainToInstance } from 'class-transformer';
+import { plainToInstance } from 'class-transformer';
 import * as config from 'config';
 import { existsSync, unlinkSync } from 'fs';
 import { SignOptions } from 'jsonwebtoken';
@@ -39,14 +39,13 @@ import { RefreshTokenService } from '../refresh-token/refresh-token.service';
 import { RefreshTokenSerializer } from '../refresh-token/serializer/refresh-token.serializer';
 import { RolesService } from '../role/roles.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { CreateUserDto } from './dto/create-user.dto';
 import { ForgetPasswordDto } from './dto/forget-password.dto';
-import { RegisterUserDto } from './dto/register-user.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UserLoginDto } from './dto/user-login.dto';
 import {
-  adminUserGroupsForSerializing,
-  ownerUserGroupsForSerializing,
+  GROUP_ADMIN,
+  GROUP_DEFAULT,
+  GROUP_USER,
   UserSerializer,
 } from './serializer/user.serializer';
 import { UserRepository } from './user.repository';
@@ -115,7 +114,8 @@ export class AuthService {
 
     // console.log(users)
     // console.log(tokenCount)
-    return this.userRepository.paginate(qr, { role: true });
+    const usersPag = await this.paginate(qr, { role: true });
+    return usersPag
   }
 
   /**
@@ -187,9 +187,10 @@ export class AuthService {
         : 'new-user-set-password';
       const linkLabel = registerProcess ? 'Activate Account' : 'Set Password';
 
-      await this.sendMailToUser(userSaved, subject, link, slug, linkLabel);
+      const userSerialized = this.transform(userSaved)
+      await this.sendMailToUser(userSerialized, subject, link, slug, linkLabel);
 
-      return userSaved;
+      return userSerialized;
     }
     throw new CustomHttpException(
       `Error to create new user`,
@@ -244,8 +245,7 @@ export class AuthService {
         );
       }
       throw new UnauthorizedException(error, code);
-    }
-    // const userSerializer = this.transform(user);
+    }    
 
     const accessToken = await this.generateAccessToken(user);
     let refreshToken = null;
@@ -270,12 +270,7 @@ export class AuthService {
     id: string,
     updateUserDto: Partial<UserEntity>,
   ): Promise<UserSerializer> {
-    // const user = await this.userRepository.get(id, [], {
-    //   groups: [
-    //     ...ownerUserGroupsForSerializing,
-    //     ...adminUserGroupsForSerializing
-    //   ]
-    // });
+    
     const user = await this.userRepository.findOne(id, { role: true });
     const errorPayload: ValidationPayloadInterface[] = [];
 
@@ -324,7 +319,7 @@ export class AuthService {
     // user.update(updateUserDto);
     const userSaved = await this.userRepository.update(user.id, updateUserDto);
 
-    return userSaved;
+    return this.transform(userSaved, {groups: [GROUP_USER, GROUP_ADMIN]});
   }
 
   /**
@@ -336,10 +331,10 @@ export class AuthService {
   ): Promise<[user: UserSerializer, error: string, code: number]> {
     const { username, password } = userLoginDto;
     const user = await this.userRepository.findBy('username', username);
-
+    const userSerialized = this.transform(user,{groups: [GROUP_USER, GROUP_ADMIN]});
     if (user) {
       const hash = await bcrypt.hash(password, user.salt);
-
+      
       if (user && hash === user.password) {
         if (user.status !== UserStatusEnum.ACTIVE) {
           return [
@@ -347,9 +342,9 @@ export class AuthService {
             ExceptionTitleList.UserInactive,
             StatusCodesList.UserInactive,
           ];
-        }
-
-        return [user, null, null];
+        }       
+        
+        return [userSerialized, null, null];
       }
     }
 
@@ -407,29 +402,31 @@ export class AuthService {
    * get user profile
    * @param user
    */
-  async get(user: UserEntity): Promise<UserSerializer> {
-    // return this.userRepository.transform(user, {
-    //   groups: ownerUserGroupsForSerializing
-    // });
-    const userSaved = await this.userRepository.findOne(user.id);
-
-    return userSaved;
+  async get(user: UserEntity): Promise<UserSerializer> {    
+    const userSaved = await this.userRepository.findOne(user.id,
+      { role: true}      
+    );    
+    return this.transform(userSaved, {groups:[GROUP_USER]});
   }
+  
 
   /**
    * Get user By Id
    * @param id
    */
-  async findById(id: string): Promise<UserSerializer> {
-    // return this.userRepository.get(id, ['role'], {
-    //   groups: [
-    //     ...adminUserGroupsForSerializing,
-    //     ...ownerUserGroupsForSerializing
-    //   ]
-    // });
-    const userSaved = await this.userRepository.findOne(id);
+  async findById(id: string): Promise<UserSerializer> {    
+    const userSaved = await this.userRepository.findOne(
+      id,
+      {
+        role: {
+          include: {
+            permissions: true,
+          },
+        },
+      }
+      );
 
-    return userSaved;
+    return this.transform(userSaved, {groups: [GROUP_USER, GROUP_ADMIN]});
   }
 
   /**
@@ -439,7 +436,7 @@ export class AuthService {
   async findByUsername(username: string): Promise<UserSerializer> {
     const userSaved = await this.userRepository.findBy('username', username);
 
-    return userSaved;
+    return this.transform(userSaved, {groups: [GROUP_USER, GROUP_ADMIN]});
   }
 
   /**
@@ -449,21 +446,18 @@ export class AuthService {
   async findAll(
     userSearchFilterDto: UserSearchFilterDto,
   ): Promise<UserSerializer[]> {
-    // return this.userRepository.paginate(
-    //   userSearchFilterDto,
-    //   ['role'],
-    //   ['username', 'email', 'name', 'contact', 'address'],
-    //   {
-    //     groups: [
-    //       ...adminUserGroupsForSerializing,
-    //       ...ownerUserGroupsForSerializing,
-    //       ...defaultUserGroupsForSerializing
-    //     ]
-    //   }
-    // );
-    const users = await this.userRepository.findAll();
+    
+    const qb = new QueryBuilder({      
+      sort: 'username,email,name,contact,address',      
+    });
 
-    return users;
+    const filterOptions = qb.sort().build();
+    const users = await this.userRepository.findAll(
+      filterOptions,
+      {role: true}
+    );
+
+    return this.transformMany(users, {groups: [GROUP_USER, GROUP_ADMIN, GROUP_DEFAULT]});
   }
 
   /**
@@ -525,12 +519,12 @@ export class AuthService {
     currentDateTime.setHours(currentDateTime.getHours() + 1);
     user.tokenValidityDate = currentDateTime;
     user.skipHashPassword = true;
-    const userSerializer = await this.userRepository.update(user.id, user);
-
+    const userUpdated = await this.userRepository.update(user.id, user);
+    const userSerialized = this.transform(userUpdated)
     const subject = 'Reset Password';
 
     await this.sendMailToUser(
-      userSerializer,
+      userSerialized,
       subject,
       `reset/${token}`,
       'reset-password',
@@ -797,9 +791,49 @@ export class AuthService {
     const user = await this.userRepository.findBy('token', token);
 
     if (user && user.tokenValidityDate > new Date()) {
-      return user;
+      return this.transform(user);
     }
 
     return null;
+  }
+
+  // need to test more
+  async paginate(
+    findOptions: { take: number; skip: number },
+    include?    
+  ): Promise<Pagination<UserSerializer>> {
+    const [results, total] = await this.userRepository.findAndCount(findOptions);
+    const serializedResult = this.transformMany(results);
+
+    const limit = findOptions.take;
+    const skip = findOptions.skip + 1;
+    const page = findOptions.skip + 1;
+
+    return new Pagination<UserSerializer>({
+      results: serializedResult,
+      totalItems: total,
+      pageSize: limit,
+      currentPage: page,
+      previous: page > 1 ? page - 1 : 0,
+      next: total > skip + limit ? page + 1 : 0,
+    });
+  }
+
+  /**
+   * transform entity
+   * @param model
+   * @param transformOptions
+   */
+  transform(model: UserEntity, transformOptions = {}): UserSerializer { 
+    return plainToInstance(UserSerializer, model, transformOptions) ;
+  }
+
+  /**
+   * transform array of entity
+   * @param models
+   * @param transformOptions
+   */
+  transformMany(models: UserEntity[], transformOptions = {}): UserSerializer[] {
+    return models.map((model) => this.transform(model, transformOptions));
   }
 }

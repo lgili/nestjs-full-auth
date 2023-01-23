@@ -5,6 +5,7 @@ import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
 import { CustomHttpException } from 'src/exception/custom-http.exception';
+import { AuthService } from 'src/modules/auth/auth.service';
 import { JwtPayloadDto } from 'src/modules/auth/dto/jwt-payload.dto';
 import { UserSerializer } from 'src/modules/auth/serializer/user.serializer';
 import { UserRepository } from 'src/modules/auth/user.repository';
@@ -14,7 +15,7 @@ export class JwtTwoFactorStrategy extends PassportStrategy(
   Strategy,
   'jwt-two-factor',
 ) {
-  constructor(private userRepository: UserRepository) {
+  constructor(private authService: AuthService) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request: Request) => {
@@ -27,14 +28,10 @@ export class JwtTwoFactorStrategy extends PassportStrategy(
 
   async validate(payload: JwtPayloadDto): Promise<UserSerializer> {
     const { isTwoFAAuthenticated, subject } = payload;
-    // const user = await this.userRepository.findOne(Number(subject), {
-    //   relations: ['role', 'role.permission']
-    // });
-    // FIXME:
-    const user = await this.userRepository.findOne(subject, { role: true });
+    const user = await this.authService.findById(subject);
 
     if (!user.isTwoFAEnabled) {
-      return user;
+      return user
     }
 
     if (isTwoFAAuthenticated) {

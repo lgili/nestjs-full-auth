@@ -172,8 +172,8 @@ export class RefreshTokenService {
         StatusCodesList.InvalidRefreshToken,
       );
     }
-
-    return this.authService.findById(subId.toString());
+    const user = await this.authService.findById(subId.toString());
+    return user
   }
 
   /**
@@ -192,8 +192,8 @@ export class RefreshTokenService {
         StatusCodesList.InvalidRefreshToken,
       );
     }
-
-    return this.refreshTokenRepository.findOne(tokenId.toString());
+    const token = await this.refreshTokenRepository.findOne(tokenId.toString());
+    return this.transform(token)
   }
 
   async updateRefreshToken(token: RefreshTokenSerializer) {
@@ -236,7 +236,7 @@ export class RefreshTokenService {
     //   previous: page > 1 ? page - 1 : 0,
     //   next: total > skip + limit ? page + 1 : 0
     // });
-    return tokens;
+    return this.transformMany(tokens);
   }
 
   /**
@@ -260,7 +260,7 @@ export class RefreshTokenService {
     token.isRevoked = true;
     const tokenSaved = await this.refreshTokenRepository.update(token.id, token);
 
-    return tokenSaved;
+    return this.transform(tokenSaved);
   }
 
   // async getRefreshTokenGroupedData(field: string) {
@@ -272,5 +272,24 @@ export class RefreshTokenService {
   //     .groupBy(`token.${field}`)
   //     .getRawMany();
   // }
+
+
+  /**
+   * transform entity
+   * @param model
+   * @param transformOptions
+   */
+  transform(model: RefreshTokenEntity, transformOptions = {}): RefreshTokenSerializer { 
+    return plainToInstance(RefreshTokenSerializer, model, transformOptions) ;
+  }
+
+  /**
+   * transform array of entity
+   * @param models
+   * @param transformOptions
+   */
+  transformMany(models: RefreshTokenEntity[], transformOptions = {}): RefreshTokenSerializer[] {
+    return models.map((model) => this.transform(model, transformOptions));
+  }
   
 }

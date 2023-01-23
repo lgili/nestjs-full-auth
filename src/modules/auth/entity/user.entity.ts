@@ -1,3 +1,4 @@
+import { User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { Exclude } from 'class-transformer';
 import { DeepPartial } from 'src/common/repository/type.repository';
@@ -7,8 +8,8 @@ import { RoleEntity } from 'src/modules/role/entities/role.entity';
 /**
  * User Entity
  */
-export class UserEntity {
-  id?: string;
+export class UserEntity implements User {
+  id: string;
 
   name: string;
   username: string;
@@ -40,12 +41,12 @@ export class UserEntity {
   @Exclude({
     toPlainOnly: true,
   })
-  twoFASecret?: string;
+  twoFASecret: string | null;
 
   @Exclude({
     toPlainOnly: true,
   })
-  twoFAThrottleTime?: Date;
+  twoFAThrottleTime: Date | null;
 
   isTwoFAEnabled: boolean;
 
@@ -57,6 +58,9 @@ export class UserEntity {
   role: RoleEntity;
 
   roleId: string;
+
+  created_at: Date;
+  updated_at: Date;
 
   constructor(data?: DeepPartial<UserEntity>) {
     if (data) {

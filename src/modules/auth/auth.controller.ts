@@ -11,6 +11,7 @@ import {
   Query,
   Req,
   Res,
+  SerializeOptions,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -41,6 +42,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { UserLoginDto } from './dto/user-login.dto';
 import { UserSerializer } from './serializer/user.serializer';
+
 
 @ApiTags('user')
 @Controller()
@@ -89,6 +91,7 @@ export class AuthController {
     return response.status(HttpStatus.NO_CONTENT).json({});
   }
 
+  @UseInterceptors(ClassSerializerInterceptor)
   @UseGuards(JwtTwoFactorGuard, PermissionGuard)
   @Get('/users')
   findAll(
@@ -98,6 +101,7 @@ export class AuthController {
     return this.authService.findAll(userSearchFilterDto);
   }
 
+  @UseInterceptors(ClassSerializerInterceptor)
   @UseGuards(JwtTwoFactorGuard, PermissionGuard)
   @Post('/users')
   create(
@@ -107,6 +111,7 @@ export class AuthController {
     return this.authService.create(createUserDto);
   }
 
+  @UseInterceptors(ClassSerializerInterceptor)
   @UseGuards(JwtTwoFactorGuard, PermissionGuard)
   @Put('/users/:id')
   update(
@@ -169,8 +174,10 @@ export class AuthController {
     return this.authService.resetPassword(resetPasswordDto);
   }
 
+
+  @UseInterceptors(ClassSerializerInterceptor)
   @UseGuards(JwtTwoFactorGuard)
-  @Get('/auth/profile')
+  @Get('/auth/profile')  
   profile(
     @GetUser()
     user: UserEntity,
@@ -178,6 +185,7 @@ export class AuthController {
     return this.authService.get(user);
   }
 
+  @UseInterceptors(ClassSerializerInterceptor)
   @UseGuards(JwtTwoFactorGuard)
   @Put('/auth/profile')
   @UseInterceptors(
@@ -212,6 +220,7 @@ export class AuthController {
     return this.authService.changePassword(user, changePasswordDto);
   }
 
+  @UseInterceptors(ClassSerializerInterceptor)
   @UseGuards(JwtTwoFactorGuard, PermissionGuard)
   @Get('/users/:id')
   findOne(

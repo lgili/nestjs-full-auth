@@ -22,7 +22,7 @@ model User {
   token             String? @unique
   tokenValidityDate DateTime?
   salt              String
-  twoFASecret       String?
+  twoFASecret       String? 
   twoFAThrottleTime DateTime?
   isTwoFAEnabled    Boolean   @default(false)
   skipHashPassword  Boolean   @default(false)
