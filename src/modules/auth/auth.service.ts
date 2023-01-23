@@ -12,7 +12,7 @@ import { existsSync, unlinkSync } from 'fs';
 import * as bcrypt from 'bcrypt';
 
 import { UserSearchFilterDto } from 'src/modules/auth/dto/user-search-filter.dto';
-import { DeepPartial, UserEntity } from 'src/modules/auth/entity/user.entity';
+import { UserEntity } from 'src/modules/auth/entity/user.entity';
 
 import { ExceptionTitleList } from 'src/common/constants/exception-title-list.constants';
 import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
@@ -27,7 +27,7 @@ import { UserStatusEnum } from 'src/modules/auth/user-status.enum';
 import { Pagination } from 'src/modules/paginate';
 import { CreateUserDto } from './dto/create-user.dto';
 import { RegisterUserDto } from './dto/register-user.dto';
-import { UserSerializer } from './serializer/user.serializer';
+import { adminUserGroupsForSerializing, ownerUserGroupsForSerializing, UserSerializer } from './serializer/user.serializer';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { MailService } from '../mail/mail.service';
 import { RefreshTokenService } from '../refresh-token/refresh-token.service';
@@ -44,6 +44,10 @@ import { RefreshTokenSerializer } from '../refresh-token/serializer/refresh-toke
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ForgetPasswordDto } from './dto/forget-password.dto';
+import { UserPrismaRepository } from './user.repository';
+import { DeepPartial, ObjectLiteral } from 'src/common/repository/type.repository';
+
+import QueryBuilder from 'src/common/repository/filter-prisma';
 
 const throttleConfig = config.get('throttle.login');
 const jwtConfig = config.get('jwt');
@@ -62,6 +66,7 @@ const BASE_OPTIONS: SignOptions = {
 export class AuthService {
   constructor(
     private readonly userRepository: IUserRepository,
+    private readonly repository: UserPrismaRepository,
     private readonly jwt: JwtService,
     private readonly roleService: RolesService,
     private readonly mailService: MailService,
@@ -69,6 +74,64 @@ export class AuthService {
     @Inject('LOGIN_THROTTLE')
     private readonly rateLimiter: RateLimiterStoreAbstract,
   ) {}
+
+  async test(
+      createUserDto: DeepPartial<UserEntity>,
+    ): Promise<Pagination<UserSerializer>> {
+
+      
+     
+      // const user =  await this.repository.findOne('96cc34dd-13ef-4b70-b7f3-555baa050e0d',
+      // {role: true},
+      // // {
+      // //   groups: [
+      // //     ...ownerUserGroupsForSerializing,
+      // //     // ...adminUserGroupsForSerializing
+      // //   ]
+      // // }
+      // )
+      const user = await this.repository.findBy('username','luiz')
+      const condition: ObjectLiteral = {
+        name: 'Luiz'
+      };
+      // const tokenCount = await this.repository.countEntityByCondition(
+      //   condition
+      // );
+      
+      console.log(QueryBuilder);
+      const qb = new QueryBuilder({
+        name: "Luiz", 
+        // username: "luiz",       
+        select: "name,role",
+        sort: "created_at" ,
+        page: 1   ,
+        perPage: 1         
+      });
+
+      const qr = qb
+      .filter()
+      .paginate()     
+      .sort()
+      .build()
+      console.log(
+        qr
+      );
+      const users  = await this.repository.findAll(
+        qr,
+        {role: true}
+      )
+      // console.log(users)
+      // console.log(tokenCount)
+      return this.repository.paginate(
+        qr,
+        {role: true}
+      )
+    }
+
+
+
+
+
 
   /**
    * send mail
@@ -124,19 +187,24 @@ export class AuthService {
     user.salt = await bcrypt.genSalt();
     user.password = await bcrypt.hash(user.password, user.salt);
 
-    const userSaved = await this.userRepository.create(user);
+    const userSaved = await this.repository.create(user);
     // console.log(userSaved)
+    if(userSaved){
+      const registerProcess = createUserDto.status;
+      const subject = registerProcess ? 'Account created' : 'Set Password';
+      const link = registerProcess ? `verify/${token}` : `reset/${token}`;
+      const slug = registerProcess ? 'activate-account' : 'new-user-set-password';
+      const linkLabel = registerProcess ? 'Activate Account' : 'Set Password';
+      
+      await this.sendMailToUser(userSaved, subject, link, slug, linkLabel);
 
-    const registerProcess = createUserDto.status;
-    const subject = registerProcess ? 'Account created' : 'Set Password';
-    const link = registerProcess ? `verify/${token}` : `reset/${token}`;
-    const slug = registerProcess ? 'activate-account' : 'new-user-set-password';
-    const linkLabel = registerProcess ? 'Activate Account' : 'Set Password';
-
-    const UserSerializer = this.transform(userSaved);
-    await this.sendMailToUser(UserSerializer, subject, link, slug, linkLabel);
-
-    return UserSerializer;
+      return userSaved;
+    }
+    throw new CustomHttpException(
+      `Error to create new user`,
+      HttpStatus.BAD_REQUEST,
+      StatusCodesList.InternalServerError,
+    );
   }
 
   /**
@@ -183,13 +251,13 @@ export class AuthService {
       }
       throw new UnauthorizedException(error, code);
     }
-    const userSerializer = this.transform(user);
+    // const userSerializer = this.transform(user);
 
-    const accessToken = await this.generateAccessToken(userSerializer);
+    const accessToken = await this.generateAccessToken(user);
     let refreshToken = null;
     if (userLoginDto.remember) {
       refreshToken = await this.refreshTokenService.generateRefreshToken(
-        userSerializer,
+        user,
         refreshTokenPayload,
       );
     }
@@ -212,49 +280,52 @@ export class AuthService {
     //     ...adminUserGroupsForSerializing
     //   ]
     // });
-    const user = await this.userRepository.findById(id);
+    const user = await this.repository.findOne(id, {role: true});
     const errorPayload: ValidationPayloadInterface[] = [];
-
+    
     if (updateUserDto.email) {
-      const newEmail = await this.userRepository.findByEmail(
+      const newEmail = await this.repository.findBy(
+        'email',
         updateUserDto.email,
-      );
-      if (newEmail) {
-        errorPayload.push({
-          property: 'email',
-          constraints: {
-            unique: 'already taken',
-          },
-        });
+        );
+        if (newEmail) {
+          errorPayload.push({
+            property: 'email',
+            constraints: {
+              unique: 'already taken',
+            },
+          });
+        }
       }
-    }
-    if (updateUserDto.username) {
-      const newUsername = await this.userRepository.findByUsername(
-        updateUserDto.username,
-      );
-      if (newUsername) {
-        errorPayload.push({
-          property: 'username',
-          constraints: {
-            unique: 'already taken',
-          },
-        });
+      if (updateUserDto.username) {        
+        const newUsername = await this.repository.findBy(
+          'username',
+          updateUserDto.username,
+          );
+        if (newUsername) {
+          errorPayload.push({
+            property: 'username',
+            constraints: {
+              unique: 'already taken',
+            },
+          });
+        }
       }
-    }
+        
+        if (Object.keys(errorPayload).length > 0) {
+          throw new UnprocessableEntityException(errorPayload);
+        }
+    // TODO 
+    // if (updateUserDto.avatar && user.avatar) {
+    //   const path = `public/images/profile/${user.avatar}`;
+    //   if (existsSync(path)) {
+    //     unlinkSync(`public/images/profile/${user.avatar}`);
+    //   }
+    // }
+    // user.update(updateUserDto);
+    const userSaved = await this.repository.update(user.id, updateUserDto);
 
-    if (Object.keys(errorPayload).length > 0) {
-      throw new UnprocessableEntityException(errorPayload);
-    }
-    if (updateUserDto.avatar && user.avatar) {
-      const path = `public/images/profile/${user.avatar}`;
-      if (existsSync(path)) {
-        unlinkSync(`public/images/profile/${user.avatar}`);
-      }
-    }
-    user.update(updateUserDto);
-    const userSaved = await this.userRepository.update(user);
-
-    return this.transform(userSaved);
+    return userSaved;
   }
 
   /**
@@ -263,9 +334,11 @@ export class AuthService {
    */
   async verifyUser(
     userLoginDto: UserLoginDto,
-  ): Promise<[user: UserEntity, error: string, code: number]> {
+  ): Promise<[user: UserSerializer, error: string, code: number]> {
     const { username, password } = userLoginDto;
-    const user = await this.userRepository.findByUsername(username);
+    const user = await this.repository.findBy(
+      'username',
+      username);
 
     if (user) {
       const hash = await bcrypt.hash(password, user.salt);
@@ -352,6 +425,15 @@ export class AuthService {
     //   ]
     // });
     const userSaved = await this.userRepository.findById(id);
+    return this.transform(userSaved);
+  }
+
+  /**
+   * Get user By username
+   * @param id
+   */
+  async findByUsername(username: string): Promise<UserSerializer> {
+    const userSaved = await this.userRepository.findByUsername(username);
     return this.transform(userSaved);
   }
 

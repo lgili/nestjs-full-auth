@@ -49,6 +49,12 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @UseInterceptors(ClassSerializerInterceptor)
+  @Post('test')
+  test(registerUserDto: RegisterUserDto): Promise<Pagination<UserSerializer>>{
+    return this.authService.test(registerUserDto);
+  }
+
+  @UseInterceptors(ClassSerializerInterceptor)
   @Post('/auth/register')
   register(
     @Body(ValidationPipe)

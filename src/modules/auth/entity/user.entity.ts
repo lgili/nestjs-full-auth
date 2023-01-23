@@ -1,17 +1,11 @@
 import * as bcrypt from 'bcrypt';
 import { Exclude } from 'class-transformer';
+import { DeepPartial } from 'src/common/repository/type.repository';
 
 import { UserStatusEnum } from 'src/modules/auth/user-status.enum';
 import { RoleEntity } from 'src/modules/role/entities/role.entity';
 
-/**
- * Same as Partial<T> but goes deeper and makes Partial<T> all its properties and sub-properties.
- */
-export declare type DeepPartial<T> = T extends object
-  ? {
-      [P in keyof T]?: DeepPartial<T[P]>;
-    }
-  : T;
+
 
 /**
  * User Entity

@@ -16,6 +16,7 @@ import { JwtTwoFactorStrategy } from 'src/common/strategy/jwt-two-factor.strateg
 import { JwtStrategy } from 'src/common/strategy/jwt.strategy';
 import { DatabaseModule } from './database/database.module';
 import { RolesModule } from '../role/roles.module';
+import { UserPrismaRepository } from './user.repository';
 
 const throttleConfig = config.get('throttle.login');
 const redisConfig = config.get('queue');
@@ -65,6 +66,7 @@ const LoginThrottleFactory = {
     JwtStrategy,
     // UniqueValidatorPipe,
     LoginThrottleFactory,
+    UserPrismaRepository,
   ],
   exports: [
     AuthService,
@@ -72,6 +74,7 @@ const LoginThrottleFactory = {
     JwtStrategy,
     PassportModule,
     JwtModule,
+
   ],
 })
 export class AuthModule {}

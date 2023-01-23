@@ -23,7 +23,7 @@ import { PermissionSerializer } from 'src/modules/permission/serializer/permissi
 import { Pagination } from 'src/modules/paginate';
 
 @ApiTags('permissions')
-// @UseGuards(JwtTwoFactorGuard, PermissionGuard)
+@UseGuards(JwtTwoFactorGuard, PermissionGuard)
 @Controller('permissions')
 @ApiBearerAuth()
 export class PermissionsController {

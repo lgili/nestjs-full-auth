@@ -8,6 +8,7 @@ import {
 import { ModelSerializer } from 'src/common/serializer/model.serializer';
 import { UserStatusEnum } from 'src/modules/auth/user-status.enum';
 import { RoleSerializer } from 'src/modules/role/serializer/role.serializer';
+import { DeepPartial } from 'src/common/repository/type.repository';
 
 export const adminUserGroupsForSerializing: string[] = ['admin'];
 export const ownerUserGroupsForSerializing: string[] = ['owner'];
@@ -17,9 +18,9 @@ export const defaultUserGroupsForSerializing: string[] = ['timestamps'];
  * user serializer
  */
 export class UserSerializer extends ModelSerializer {
-  // @Expose({
-  //   groups: [...ownerUserGroupsForSerializing, ...adminUserGroupsForSerializing]
-  // })
+  @Expose({
+    groups: [...ownerUserGroupsForSerializing, ...adminUserGroupsForSerializing]
+  })
   id: string;
 
   @ApiProperty()
@@ -60,12 +61,13 @@ export class UserSerializer extends ModelSerializer {
     groups: ownerUserGroupsForSerializing,
   })
   @Type(() => RoleSerializer)
+  @Transform(({ value }) => value.name)
   role: RoleSerializer;
 
   @Exclude({
     toClassOnly: true,
   })
-  roleId: number;
+  roleId: string;
 
   @Exclude({
     toClassOnly: true,
@@ -83,4 +85,11 @@ export class UserSerializer extends ModelSerializer {
     groups: defaultUserGroupsForSerializing,
   })
   updatedAt: Date;
+
+
+  async update(data?: DeepPartial<UserSerializer>) {
+    if (data) {
+      Object.assign(this, data);
+    }
+  }
 }
