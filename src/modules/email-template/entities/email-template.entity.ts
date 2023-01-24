@@ -1,28 +1,33 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
 export class EmailTemplateEntity {
   id: string;
+
+  @ApiProperty()
   title: string;
 
+  @ApiProperty()
   slug: string;
 
+  @ApiProperty()
   sender: string;
 
+  @ApiProperty()
   subject: string;
 
+  @ApiProperty()
   body: string;
 
+  @ApiProperty()
   isDefault: boolean;
 
-  constructor(data?: Partial<EmailTemplateEntity>) {
-    if (data) {
-      Object.assign(this, data);
-    }
-  }
+  @ApiPropertyOptional()
+  createdAt: Date;
 
-  update(data?: Partial<EmailTemplateEntity>) {
-    // for (const key in data) {
-    //   console.log(key, data[key]);
-    //   RoleEntity[key] = data[key]!;
-    // }
+  @ApiPropertyOptional()
+  updatedAt: Date;
+
+  constructor(data?: Partial<EmailTemplateEntity>) {
     if (data) {
       Object.assign(this, data);
     }

@@ -1,15 +1,12 @@
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
 import { ExceptionTitleList } from 'src/common/constants/exception-title-list.constants';
 import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
-import QueryBuilder from 'src/common/repository/filter-prisma';
 import { ForbiddenException } from 'src/exception/forbidden.exception';
 import { CreateEmailTemplateDto } from 'src/modules/email-template/dto/create-email-template.dto';
 import { EmailTemplatesSearchFilterDto } from 'src/modules/email-template/dto/email-templates-search-filter.dto';
 import { UpdateEmailTemplateDto } from 'src/modules/email-template/dto/update-email-template.dto';
-import { EmailTemplateSerializer } from 'src/modules/email-template/serializer/email-template.serializer';
-// import { Pagination } from 'src/modules/paginate';
 
+import { Pagination } from '../paginate';
 import { EmailTemplateRepository } from './email-template.repository';
 import { EmailTemplateEntity } from './entities/email-template.entity';
 
@@ -51,15 +48,16 @@ export class EmailTemplateService {
    */
   async create(
     createEmailTemplateDto: CreateEmailTemplateDto,
-  ): Promise<EmailTemplateSerializer> {
+  ): Promise<EmailTemplateEntity> {
     const emailTemplate = new EmailTemplateEntity(createEmailTemplateDto);
     emailTemplate.slug = this.slugify(createEmailTemplateDto.title);
 
     const emailTemplateSaved = await this.emailTemplateRepository.create({
       data: emailTemplate,
+      cls: EmailTemplateEntity,
     });
 
-    return this.transform(emailTemplateSaved);
+    return emailTemplateSaved;
   }
 
   /**
@@ -68,32 +66,29 @@ export class EmailTemplateService {
    */
   async findAll(
     filter: EmailTemplatesSearchFilterDto,
-  ): Promise<EmailTemplateSerializer[]> {
+  ): Promise<Pagination<EmailTemplateEntity>> {
     /*return this.repository.paginate(
       filter,
       [],
       ['title', 'subject', 'body', 'sender']
     );*/
-    const qb = new QueryBuilder({
-      sort: 'title,subject,body,sender',
+    return await this.emailTemplateRepository.paginate({
+      searchFilter: filter,
+      cls: EmailTemplateEntity,
     });
-
-    const filterOptions = qb.sort().build();
-    const emails = await this.emailTemplateRepository.findAll(filterOptions);
-
-    return this.transformMany(emails);
   }
 
   /**
    * Find Email Template By Id
    * @param id
    */
-  async findOne(id: string): Promise<EmailTemplateSerializer> {
+  async findOne(id: string): Promise<EmailTemplateEntity> {
     const template = await this.emailTemplateRepository.findOne({
       id,
+      cls: EmailTemplateEntity,
     });
 
-    return this.transform(template);
+    return template;
   }
 
   /**
@@ -104,9 +99,10 @@ export class EmailTemplateService {
   async update(
     id: string,
     updateEmailTemplateDto: UpdateEmailTemplateDto,
-  ): Promise<EmailTemplateSerializer> {
+  ): Promise<EmailTemplateEntity> {
     const template = await this.emailTemplateRepository.findOne({
       id,
+      cls: EmailTemplateEntity,
     });
 
     const hasTitle = await this.emailTemplateRepository.findBy({
@@ -129,9 +125,10 @@ export class EmailTemplateService {
     const emailSaved = await this.emailTemplateRepository.update({
       id: template.id,
       data: emailTemplate,
+      cls: EmailTemplateEntity,
     });
 
-    return this.transform(emailSaved);
+    return emailSaved;
   }
 
   /**
@@ -150,29 +147,5 @@ export class EmailTemplateService {
       );
     }
     await this.emailTemplateRepository.delete(id);
-  }
-
-  /**
-   * transform entity
-   * @param model
-   * @param transformOptions
-   */
-  transform(
-    model: EmailTemplateEntity,
-    transformOptions = {},
-  ): EmailTemplateSerializer {
-    return plainToInstance(EmailTemplateSerializer, model, transformOptions);
-  }
-
-  /**
-   * transform array of entity
-   * @param models
-   * @param transformOptions
-   */
-  transformMany(
-    models: EmailTemplateEntity[],
-    transformOptions = {},
-  ): EmailTemplateSerializer[] {
-    return models.map((model) => this.transform(model, transformOptions));
   }
 }

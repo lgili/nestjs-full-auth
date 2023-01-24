@@ -18,8 +18,9 @@ import { CreateEmailTemplateDto } from 'src/modules/email-template/dto/create-em
 import { EmailTemplatesSearchFilterDto } from 'src/modules/email-template/dto/email-templates-search-filter.dto';
 import { UpdateEmailTemplateDto } from 'src/modules/email-template/dto/update-email-template.dto';
 import { EmailTemplateService } from 'src/modules/email-template/email-template.service';
-import { EmailTemplateSerializer } from 'src/modules/email-template/serializer/email-template.serializer';
-// import { Pagination } from 'src/modules/paginate';
+
+import { Pagination } from '../paginate';
+import { EmailTemplateEntity } from './entities/email-template.entity';
 
 @ApiTags('email-templates')
 @UseGuards(JwtTwoFactorGuard, PermissionGuard)
@@ -31,7 +32,7 @@ export class EmailTemplateController {
   create(
     @Body()
     createEmailTemplateDto: CreateEmailTemplateDto,
-  ): Promise<EmailTemplateSerializer> {
+  ): Promise<EmailTemplateEntity> {
     return this.emailTemplateService.create(createEmailTemplateDto);
   }
 
@@ -39,7 +40,7 @@ export class EmailTemplateController {
   findAll(
     @Query()
     filter: EmailTemplatesSearchFilterDto,
-  ): Promise<EmailTemplateSerializer[]> {
+  ): Promise<Pagination<EmailTemplateEntity>> {
     return this.emailTemplateService.findAll(filter);
   }
 
@@ -47,7 +48,7 @@ export class EmailTemplateController {
   findOne(
     @Param('id')
     id: string,
-  ): Promise<EmailTemplateSerializer> {
+  ): Promise<EmailTemplateEntity> {
     return this.emailTemplateService.findOne(id);
   }
 
@@ -57,7 +58,7 @@ export class EmailTemplateController {
     id: string,
     @Body()
     updateEmailTemplateDto: UpdateEmailTemplateDto,
-  ): Promise<EmailTemplateSerializer> {
+  ): Promise<EmailTemplateEntity> {
     return this.emailTemplateService.update(id, updateEmailTemplateDto);
   }
 
