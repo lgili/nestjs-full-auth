@@ -6,9 +6,8 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { plainToInstance } from 'class-transformer';
 import * as config from 'config';
-// import { existsSync, unlinkSync } from 'fs';
+import { existsSync, unlinkSync } from 'fs';
 import { SignOptions } from 'jsonwebtoken';
 import {
   RateLimiterRes,
@@ -16,16 +15,19 @@ import {
 } from 'rate-limiter-flexible';
 import { ExceptionTitleList } from 'src/common/constants/exception-title-list.constants';
 import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
-import { SearchFilterInterface } from 'src/common/interfaces/search-filter.interface';
 import { ValidationPayloadInterface } from 'src/common/interfaces/validation-error.interface';
-import QueryBuilder from 'src/common/repository/filter-prisma';
 import { DeepPartial } from 'src/common/repository/type.repository';
 import { CustomHttpException } from 'src/exception/custom-http.exception';
 import { ForbiddenException } from 'src/exception/forbidden.exception';
 import { NotFoundException } from 'src/exception/not-found.exception';
 import { UnauthorizedException } from 'src/exception/unauthorized.exception';
 import { UserSearchFilterDto } from 'src/modules/auth/dto/user-search-filter.dto';
-import { UserEntity } from 'src/modules/auth/entity/user.entity';
+import {
+  GROUP_ADMIN,
+  GROUP_DEFAULT,
+  GROUP_USER,
+  UserEntity,
+} from 'src/modules/auth/entity/user.entity';
 import { UserStatusEnum } from 'src/modules/auth/user-status.enum';
 import { Pagination } from 'src/modules/paginate';
 import { RefreshTokenEntity } from 'src/modules/refresh-token/entities/refresh-token.entity';
@@ -34,17 +36,11 @@ import { MailJobInterface } from '../mail/interface/mail-job.interface';
 import { MailService } from '../mail/mail.service';
 import { RefreshPaginateFilterDto } from '../refresh-token/dto/refresh-paginate-filter.dto';
 import { RefreshTokenService } from '../refresh-token/refresh-token.service';
-import { RefreshTokenSerializer } from '../refresh-token/serializer/refresh-token.serializer';
 import { RolesService } from '../role/roles.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgetPasswordDto } from './dto/forget-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UserLoginDto } from './dto/user-login.dto';
-import {
-  GROUP_ADMIN,
-  GROUP_USER,
-  UserSerializer,
-} from './serializer/user.serializer';
 import { UserRepository } from './user.repository';
 
 const throttleConfig = config.get('throttle.login');
@@ -82,7 +78,7 @@ export class AuthService {
    * @param linkLabel
    */
   async sendMailToUser(
-    user: UserSerializer,
+    user: UserEntity,
     subject: string,
     url: string,
     slug: string,
@@ -108,9 +104,7 @@ export class AuthService {
    * add new user
    * @param createUserDto
    */
-  async create(
-    createUserDto: DeepPartial<UserEntity>,
-  ): Promise<UserSerializer> {
+  async create(createUserDto: DeepPartial<UserEntity>): Promise<UserEntity> {
     const user = new UserEntity(createUserDto);
     const token = await this.generateUniqueToken(12);
 
@@ -129,9 +123,11 @@ export class AuthService {
     user.salt = await bcrypt.genSalt();
     user.password = await bcrypt.hash(user.password, user.salt);
 
-    const userSaved = await this.userRepository.create(user);
+    const userSaved = await this.userRepository.create({
+      data: user,
+      cls: UserEntity,
+    });
 
-    // console.log(userSaved)
     if (userSaved) {
       const registerProcess = createUserDto.status;
       const subject = registerProcess ? 'Account created' : 'Set Password';
@@ -142,10 +138,9 @@ export class AuthService {
         : 'new-user-set-password';
       const linkLabel = registerProcess ? 'Activate Account' : 'Set Password';
 
-      const userSerialized = this.transform(userSaved);
-      await this.sendMailToUser(userSerialized, subject, link, slug, linkLabel);
+      await this.sendMailToUser(userSaved, subject, link, slug, linkLabel);
 
-      return userSerialized;
+      return userSaved;
     }
     throw new CustomHttpException(
       `Error to create new user`,
@@ -224,15 +219,20 @@ export class AuthService {
   async update(
     id: string,
     updateUserDto: Partial<UserEntity>,
-  ): Promise<UserSerializer> {
-    const user = await this.userRepository.findOne(id, { role: true });
+  ): Promise<UserEntity> {
+    const user = await this.userRepository.findOne({
+      id: id,
+      include: {
+        role: true,
+      },
+    });
     const errorPayload: ValidationPayloadInterface[] = [];
 
     if (updateUserDto.email) {
-      const newEmail = await this.userRepository.findBy(
-        'email',
-        updateUserDto.email,
-      );
+      const newEmail = await this.userRepository.findBy({
+        fieldName: 'email',
+        value: updateUserDto.email,
+      });
 
       if (newEmail) {
         errorPayload.push({
@@ -245,10 +245,10 @@ export class AuthService {
     }
 
     if (updateUserDto.username) {
-      const newUsername = await this.userRepository.findBy(
-        'username',
-        updateUserDto.username,
-      );
+      const newUsername = await this.userRepository.findBy({
+        fieldName: 'username',
+        value: updateUserDto.username,
+      });
 
       if (newUsername) {
         errorPayload.push({
@@ -263,17 +263,25 @@ export class AuthService {
     if (Object.keys(errorPayload).length > 0) {
       throw new UnprocessableEntityException(errorPayload);
     }
-    // TODO
-    // if (updateUserDto.avatar && user.avatar) {
-    //   const path = `public/images/profile/${user.avatar}`;
-    //   if (existsSync(path)) {
-    //     unlinkSync(`public/images/profile/${user.avatar}`);
-    //   }
-    // }
-    // user.update(updateUserDto);
-    const userSaved = await this.userRepository.update(user.id, updateUserDto);
 
-    return this.transform(userSaved, { groups: [GROUP_USER, GROUP_ADMIN] });
+    if (updateUserDto.avatar && user.avatar) {
+      const path = `public/images/profile/${user.avatar}`;
+
+      if (existsSync(path)) {
+        unlinkSync(`public/images/profile/${user.avatar}`);
+      }
+    }
+
+    const userSaved = await this.userRepository.update({
+      id: user.id,
+      data: updateUserDto,
+      cls: UserEntity,
+      transformOptions: {
+        groups: [GROUP_USER, GROUP_ADMIN],
+      },
+    });
+
+    return userSaved;
   }
 
   /**
@@ -282,12 +290,12 @@ export class AuthService {
    */
   async verifyUser(
     userLoginDto: UserLoginDto,
-  ): Promise<[user: UserSerializer, error: string, code: number]> {
+  ): Promise<[user: UserEntity, error: string, code: number]> {
     const { username, password } = userLoginDto;
-    const user = await this.userRepository.findBy('username', username);
 
-    const userSerialized = this.transform(user, {
-      groups: [GROUP_USER, GROUP_ADMIN],
+    const user = await this.userRepository.findBy({
+      fieldName: 'username',
+      value: username,
     });
 
     if (user) {
@@ -302,7 +310,7 @@ export class AuthService {
           ];
         }
 
-        return [userSerialized, null, null];
+        return [user, null, null];
       }
     }
 
@@ -318,7 +326,10 @@ export class AuthService {
    * @param token
    */
   async activateAccount(token: string): Promise<void> {
-    const user = await this.userRepository.findBy('token', token);
+    const user = await this.userRepository.findBy({
+      fieldName: 'token',
+      value: token,
+    });
 
     if (!user) {
       throw new NotFoundException();
@@ -333,7 +344,10 @@ export class AuthService {
     user.status = UserStatusEnum.ACTIVE;
     user.token = await this.generateUniqueToken(6);
     user.skipHashPassword = true;
-    await this.userRepository.update(user.id, user);
+    await this.userRepository.update({
+      id: user.id,
+      data: user,
+    });
   }
 
   /**
@@ -360,38 +374,62 @@ export class AuthService {
    * get user profile
    * @param user
    */
-  async get(user: UserEntity): Promise<UserSerializer> {
-    const userSaved = await this.userRepository.findOne(user.id, {
-      role: true,
+  async get(user: UserEntity): Promise<UserEntity> {
+    return await this.userRepository.findOne({
+      id: user.id,
+      include: {
+        role: true,
+      },
     });
+  }
 
-    return this.transform(userSaved, { groups: [GROUP_USER] });
+  /**
+   * get user profile
+   * @param id
+   */
+  async getWithPassword(id: string): Promise<UserEntity> {
+    return await this.userRepository.findOne({
+      id: id,
+      include: {
+        role: true,
+      },
+    });
   }
 
   /**
    * Get user By Id
    * @param id
    */
-  async findById(id: string): Promise<UserSerializer> {
-    const userSaved = await this.userRepository.findOne(id, {
-      role: {
-        include: {
-          permissions: true,
+  async findById(id: string): Promise<UserEntity> {
+    return await this.userRepository.findOne({
+      id: id,
+      include: {
+        role: {
+          include: {
+            permissions: true,
+          },
         },
       },
+      cls: UserEntity,
+      transformOptions: {
+        groups: [GROUP_USER, GROUP_ADMIN],
+      },
     });
-
-    return this.transform(userSaved, { groups: [GROUP_USER, GROUP_ADMIN] });
   }
 
   /**
    * Get user By username
    * @param id
    */
-  async findByUsername(username: string): Promise<UserSerializer> {
-    const userSaved = await this.userRepository.findBy('username', username);
-
-    return this.transform(userSaved, { groups: [GROUP_USER, GROUP_ADMIN] });
+  async findByUsername(username: string): Promise<UserEntity> {
+    return await this.userRepository.findBy({
+      fieldName: 'username',
+      value: username,
+      cls: UserEntity,
+      transformOptions: {
+        groups: [GROUP_USER, GROUP_ADMIN],
+      },
+    });
   }
 
   /**
@@ -400,10 +438,14 @@ export class AuthService {
    */
   async findAll(
     userSearchFilterDto: UserSearchFilterDto,
-  ): Promise<Pagination<UserSerializer>> {
-    const users = await this.paginate(userSearchFilterDto);
-
-    return users;
+  ): Promise<Pagination<UserEntity>> {
+    return await this.userRepository.paginate({
+      searchFilter: userSearchFilterDto,
+      cls: UserEntity,
+      transformOptions: {
+        groups: [GROUP_USER, GROUP_ADMIN, GROUP_DEFAULT],
+      },
+    });
   }
 
   /**
@@ -413,7 +455,10 @@ export class AuthService {
   async generateUniqueToken(length: number): Promise<string> {
     const token = this.generateRandomCode(length);
 
-    const tokenCount = await this.userRepository.findBy('token', token);
+    const tokenCount = await this.userRepository.findBy({
+      fieldName: 'token',
+      value: token,
+    });
 
     // recursively find unique tokens
     if (tokenCount) {
@@ -454,7 +499,10 @@ export class AuthService {
   async forgotPassword(forgetPasswordDto: ForgetPasswordDto): Promise<void> {
     const { email } = forgetPasswordDto;
 
-    const user = await this.userRepository.findBy('email,', email);
+    const user = await this.userRepository.findBy({
+      fieldName: 'email,',
+      value: email,
+    });
 
     if (!user) {
       return;
@@ -465,12 +513,17 @@ export class AuthService {
     currentDateTime.setHours(currentDateTime.getHours() + 1);
     user.tokenValidityDate = currentDateTime;
     user.skipHashPassword = true;
-    const userUpdated = await this.userRepository.update(user.id, user);
-    const userSerialized = this.transform(userUpdated);
+
+    const userUpdated = await this.userRepository.update({
+      id: user.id,
+      data: user,
+      cls: UserEntity,
+    });
+
     const subject = 'Reset Password';
 
     await this.sendMailToUser(
-      userSerialized,
+      userUpdated,
       subject,
       `reset/${token}`,
       'reset-password',
@@ -491,8 +544,10 @@ export class AuthService {
     }
     user.token = await this.generateUniqueToken(6);
     user.password = await bcrypt.hash(password, user.salt);
-    // user.password = password;
-    await this.userRepository.update(user.id, user);
+    await this.userRepository.update({
+      id: user.id,
+      data: user,
+    });
   }
 
   /**
@@ -505,6 +560,7 @@ export class AuthService {
     changePasswordDto: ChangePasswordDto,
   ): Promise<void> {
     const { oldPassword, password } = changePasswordDto;
+
     const hash = await bcrypt.hash(oldPassword, user.salt);
 
     let checkOldPwdMatches = false;
@@ -520,11 +576,15 @@ export class AuthService {
         StatusCodesList.IncorrectOldPassword,
       );
     }
+
     user.password = await bcrypt.hash(password, user.salt);
     delete user['role'];
     delete user['roleId'];
 
-    await this.userRepository.update(user.id, user);
+    await this.userRepository.update({
+      id: user.id,
+      data: user,
+    });
   }
 
   /**
@@ -571,7 +631,7 @@ export class AuthService {
    * @param isTwoFAAuthenticated
    */
   public async generateAccessToken(
-    user: UserSerializer,
+    user: UserEntity,
     isTwoFAAuthenticated = false,
   ): Promise<string> {
     const opts: SignOptions = {
@@ -651,7 +711,7 @@ export class AuthService {
   activeRefreshTokenList(
     userId: string,
     filter: RefreshPaginateFilterDto,
-  ): Promise<RefreshTokenSerializer[]> {
+  ): Promise<RefreshTokenEntity[]> {
     return this.refreshTokenService.getRefreshTokenByUserId(userId, filter);
   }
 
@@ -660,7 +720,7 @@ export class AuthService {
    * @param id
    * @param userId
    **/
-  revokeTokenById(id: string, userId: string): Promise<RefreshTokenSerializer> {
+  revokeTokenById(id: string, userId: string): Promise<RefreshTokenEntity> {
     return this.refreshTokenService.revokeRefreshTokenById(id, userId);
   }
 
@@ -673,11 +733,17 @@ export class AuthService {
     // add one minute throttle to generate next two factor token
     const twoFAThrottleTime = new Date();
     twoFAThrottleTime.setSeconds(twoFAThrottleTime.getSeconds() + 60);
-    const user = await this.userRepository.findOne(userId);
+
+    const user = await this.userRepository.findOne({
+      id: userId,
+    });
     user.twoFASecret = secret;
     user.twoFAThrottleTime = twoFAThrottleTime;
 
-    return this.userRepository.update(user.id, user);
+    return this.userRepository.update({
+      id: user.id,
+      data: user,
+    });
   }
 
   /**
@@ -716,7 +782,10 @@ export class AuthService {
     }
     user.isTwoFAEnabled = isTwoFAEnabled;
 
-    return this.userRepository.update(user.id, user);
+    return this.userRepository.update({
+      id: user.id,
+      data: user,
+    });
   }
 
   /**
@@ -725,73 +794,18 @@ export class AuthService {
    */
   async getUserForResetPassword(
     resetPasswordDto: ResetPasswordDto,
-  ): Promise<UserSerializer> {
+  ): Promise<UserEntity> {
     const { token } = resetPasswordDto;
-    // const query = this.createQueryBuilder('user');
-    // query.where('user.token = :token', { token });
-    // query.andWhere('user.tokenValidityDate > :date', {
-    //   date: new Date()
-    // });
-    // return query.getOne();
 
-    const user = await this.userRepository.findBy('token', token);
+    const user = await this.userRepository.findBy({
+      fieldName: 'token',
+      value: token,
+    });
 
     if (user && user.tokenValidityDate > new Date()) {
-      return this.transform(user);
+      return user;
     }
 
     return null;
-  }
-
-  // need to test more
-  async paginate(
-    searchFilter: DeepPartial<SearchFilterInterface>,
-  ): Promise<Pagination<UserSerializer>> {
-    const qb = new QueryBuilder({
-      page: searchFilter.page,
-      perPage: searchFilter.perPage,
-    });
-    const filterOptions = qb.paginate().build();
-
-    const [results, total] = await this.userRepository.findAndCount(
-      filterOptions,
-    );
-    const serializedResult = this.transformMany(results);
-
-    const currentPage = Number(searchFilter?.page) || 1;
-    const perPage = Number(searchFilter.perPage) || 10;
-    // const skip = currentPage > 0 ? perPage * (currentPage - 1) : 0;
-    const lastPage = Math.ceil(total / perPage);
-    console.log(searchFilter?.page);
-
-    return new Pagination<UserSerializer>({
-      results: serializedResult,
-      meta: {
-        total,
-        lastPage,
-        currentPage,
-        perPage,
-        previous: currentPage > 1 ? currentPage - 1 : null,
-        next: currentPage < lastPage ? currentPage + 1 : null,
-      },
-    });
-  }
-
-  /**
-   * transform entity
-   * @param model
-   * @param transformOptions
-   */
-  transform(model: UserEntity, transformOptions = {}): UserSerializer {
-    return plainToInstance(UserSerializer, model, transformOptions);
-  }
-
-  /**
-   * transform array of entity
-   * @param models
-   * @param transformOptions
-   */
-  transformMany(models: UserEntity[], transformOptions = {}): UserSerializer[] {
-    return models.map((model) => this.transform(model, transformOptions));
   }
 }

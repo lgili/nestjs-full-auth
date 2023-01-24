@@ -8,8 +8,6 @@ import { CustomHttpException } from 'src/exception/custom-http.exception';
 import { AuthService } from 'src/modules/auth/auth.service';
 import { UserEntity } from 'src/modules/auth/entity/user.entity';
 
-import { UserSerializer } from '../auth/serializer/user.serializer';
-
 const TwofaConfig = config.get('twofa');
 
 @Injectable()
@@ -42,7 +40,7 @@ export class TwofaService {
     };
   }
 
-  isTwoFACodeValid(twoFASecret: string, user: UserSerializer) {
+  isTwoFACodeValid(twoFASecret: string, user: UserEntity) {
     return authenticator.verify({
       token: twoFASecret,
       secret: user.twoFASecret,

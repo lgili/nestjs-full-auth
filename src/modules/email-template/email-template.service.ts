@@ -39,7 +39,10 @@ export class EmailTemplateService {
    * @param slug
    */
   async findBySlug(slug) {
-    return await this.emailTemplateRepository.findBy('slug', slug);
+    return await this.emailTemplateRepository.findBy({
+      fieldName: 'slug',
+      value: slug,
+    });
   }
 
   /**
@@ -52,9 +55,9 @@ export class EmailTemplateService {
     const emailTemplate = new EmailTemplateEntity(createEmailTemplateDto);
     emailTemplate.slug = this.slugify(createEmailTemplateDto.title);
 
-    const emailTemplateSaved = await this.emailTemplateRepository.create(
-      emailTemplate,
-    );
+    const emailTemplateSaved = await this.emailTemplateRepository.create({
+      data: emailTemplate,
+    });
 
     return this.transform(emailTemplateSaved);
   }
@@ -86,7 +89,9 @@ export class EmailTemplateService {
    * @param id
    */
   async findOne(id: string): Promise<EmailTemplateSerializer> {
-    const template = await this.emailTemplateRepository.findOne(id);
+    const template = await this.emailTemplateRepository.findOne({
+      id,
+    });
 
     return this.transform(template);
   }
@@ -100,12 +105,14 @@ export class EmailTemplateService {
     id: string,
     updateEmailTemplateDto: UpdateEmailTemplateDto,
   ): Promise<EmailTemplateSerializer> {
-    const template = await this.emailTemplateRepository.findOne(id);
+    const template = await this.emailTemplateRepository.findOne({
+      id,
+    });
 
-    const hasTitle = await this.emailTemplateRepository.findBy(
-      'title',
-      updateEmailTemplateDto.title,
-    );
+    const hasTitle = await this.emailTemplateRepository.findBy({
+      fieldName: 'title',
+      value: updateEmailTemplateDto.title,
+    });
 
     if (hasTitle) {
       throw new UnprocessableEntityException({
@@ -119,10 +126,10 @@ export class EmailTemplateService {
     const emailTemplate = new EmailTemplateEntity(updateEmailTemplateDto);
     emailTemplate.slug = this.slugify(updateEmailTemplateDto.title);
 
-    const emailSaved = await this.emailTemplateRepository.update(
-      template.id,
-      emailTemplate,
-    );
+    const emailSaved = await this.emailTemplateRepository.update({
+      id: template.id,
+      data: emailTemplate,
+    });
 
     return this.transform(emailSaved);
   }
@@ -132,7 +139,9 @@ export class EmailTemplateService {
    * @param id
    */
   async remove(id: string): Promise<void> {
-    const template = await this.emailTemplateRepository.findOne(id);
+    const template = await this.emailTemplateRepository.findOne({
+      id,
+    });
 
     if (template.isDefault) {
       throw new ForbiddenException(

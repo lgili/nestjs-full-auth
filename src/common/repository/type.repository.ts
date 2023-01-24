@@ -1,25 +1,69 @@
+import { ClassTransformOptions } from 'class-transformer';
+
+import { SearchFilterInterface } from '../interfaces/search-filter.interface';
+
 interface Reader<Entity> {
-  findAll(searchFilter: any, include: any): Promise<Entity[]>;
+  findAll(findOptions?: FindAllInterface<Entity>): Promise<Entity[]>;
 
-  findOne(id: string, include: any): Promise<Entity | null>;
+  findOne(findOptions: FindByIdInterface<Entity>): Promise<Entity | null>;
 
-  findBy(
-    fieldName: string,
-    value: string,
-    include: any,
-  ): Promise<Entity | null>;
+  findBy(findOptions: FindByInterface<Entity>): Promise<Entity | null>;
 
   countEntityByCondition(conditions: ObjectLiteral): Promise<number>;
 
-  findAndCount(searchFilter: any, include: any): Promise<[Entity[], number]>;
+  findAndCount(
+    findOptions?: FindAllInterface<Entity>,
+  ): Promise<[Entity[], number]>;
 }
 
 interface Writer<Entity> {
-  create(data: Entity): Promise<Entity | null>;
-  update(id: string, data: DeepPartial<Entity>): Promise<Entity | null>;
+  create(options: CreateInterface<Entity>): Promise<Entity | null>;
+  update(options: UpdateInterface<Entity>): Promise<Entity | null>;
   delete(id: string): Promise<void>;
 }
 export type Repository<Entity> = Reader<Entity> & Writer<Entity>;
+
+export interface CreateInterface<K> {
+  data: K;
+  cls?: ClassConstructor<K>;
+  transformOptions?: ClassTransformOptions;
+}
+
+export interface UpdateInterface<K> {
+  id: string;
+  data: DeepPartial<K>;
+  cls?: ClassConstructor<K>;
+  transformOptions?: ClassTransformOptions;
+}
+
+export interface FindByIdInterface<K> {
+  id: string;
+  include?: any;
+  cls?: ClassConstructor<K>;
+  transformOptions?: ClassTransformOptions;
+}
+
+export interface FindByInterface<K> {
+  fieldName: string;
+  value: string;
+  include?: any;
+  cls?: ClassConstructor<K>;
+  transformOptions?: ClassTransformOptions;
+}
+
+export interface FindAllInterface<K> {
+  searchFilter: any;
+  include?: any;
+  cls?: ClassConstructor<K>;
+  transformOptions?: ClassTransformOptions;
+}
+
+export interface FindPaginateInterface<K> {
+  searchFilter: DeepPartial<SearchFilterInterface>;
+  include?: any;
+  cls?: ClassConstructor<K>;
+  transformOptions?: ClassTransformOptions;
+}
 
 /**
  * Interface of the simple literal object with any string keys.
@@ -54,4 +98,8 @@ export declare type QueryDeepPartialEntity<T> = {
         ? ReadonlyArray<QueryDeepPartialEntity<U>>
         : QueryDeepPartialEntity<T[P]>)
     | (() => string);
+};
+
+export declare type ClassConstructor<T> = {
+  new (...args: any[]): T;
 };

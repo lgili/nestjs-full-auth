@@ -1,8 +1,19 @@
-// import { PrismaService } from '../database/config.database';
 import { PrismaClient } from '@prisma/client';
+import { plainToInstance } from 'class-transformer';
 import { NotFoundException } from 'src/exception/not-found.exception';
+import { Pagination } from 'src/modules/paginate';
 
-import { DeepPartial, Repository } from './type.repository';
+import QueryBuilder from './filter-prisma';
+import {
+  ClassConstructor,
+  CreateInterface,
+  FindAllInterface,
+  FindByIdInterface,
+  FindByInterface,
+  FindPaginateInterface,
+  Repository,
+  UpdateInterface,
+} from './type.repository';
 
 export abstract class BaseRepository<Entity> implements Repository<Entity> {
   private readonly ORM: PrismaClient;
@@ -12,10 +23,35 @@ export abstract class BaseRepository<Entity> implements Repository<Entity> {
     this.ORM = ORM;
     this.table_name = tablename;
   }
-  create(data: Entity): Promise<Entity | null> {
-    return this.ORM[this.table_name.toString()].create({ data });
+
+  /**
+   * save the entity on database
+   *
+   * @param {CreateInterface<Entity>} options
+   * @return {*}  {(Promise<Entity | null>)}
+   * @memberof BaseRepository
+   */
+  async create(options: CreateInterface<Entity>): Promise<Entity | null> {
+    const data = await this.ORM[this.table_name.toString()].create({
+      data: options.data,
+    });
+
+    if (!data) {
+      return null;
+    }
+
+    if (options.cls) {
+      return await this.transform(data, options.cls, options.transformOptions);
+    }
   }
 
+  /**
+   * deletes the entity from the database
+   *
+   * @param {string} id
+   * @return {*}  {Promise<void>}
+   * @memberof BaseRepository
+   */
   delete(id: string): Promise<void> {
     return this.ORM[this.table_name.toString()].delete({
       where: {
@@ -24,109 +60,174 @@ export abstract class BaseRepository<Entity> implements Repository<Entity> {
     });
   }
 
-  update(id: string, data: DeepPartial<Entity>): Promise<Entity | null> {
-    return this.ORM[this.table_name.toString()].update({
+  /**
+   * update the entity on database
+   *
+   * @param {UpdateInterface<Entity>} options
+   * @return {*}  {(Promise<Entity | null>)}
+   * @memberof BaseRepository
+   */
+  async update(options: UpdateInterface<Entity>): Promise<Entity | null> {
+    const data = await this.ORM[this.table_name.toString()].update({
       where: {
-        id: id,
+        id: options.id,
       },
-      data,
+      data: options.data,
     });
+
+    if (!data) {
+      return null;
+    }
+
+    if (options.cls) {
+      return await this.transform(data, options.cls, options.transformOptions);
+    }
   }
 
-  async findAll(findOptions = {}, include?): Promise<Entity[]> {
+  /**
+   * find all with conditions
+   *
+   * @param {FindAllInterface<Entity>} [findOptions]
+   * @return {*}  {Promise<Entity[]>}
+   * @memberof BaseRepository
+   */
+  async findAll(findOptions?: FindAllInterface<Entity>): Promise<Entity[]> {
     try {
       const results = await this.ORM[this.table_name.toString()].findMany({
-        ...findOptions,
-        include,
+        ...findOptions.searchFilter,
+        include: findOptions.include,
       });
 
-      return results;
+      if (findOptions.cls) {
+        return await this.transformMany(
+          results,
+          findOptions.cls,
+          findOptions.transformOptions,
+        );
+      } else {
+        return results;
+      }
     } catch (error) {
-      console.log(error);
-
       return [];
     }
   }
 
-  /***
+  /**
    * find and count entity
-   * @param findOptions
-   * @param include
-   * @param transformOptions
+   *
+   * @param {FindAllInterface<Entity>} [findOptions]
+   * @return {*}  {Promise<[Entity[], number]>}
+   * @memberof BaseRepository
    */
-  async findAndCount(findOptions = {}, include?): Promise<[Entity[], number]> {
+  async findAndCount(
+    findOptions?: FindAllInterface<Entity>,
+  ): Promise<[Entity[], number]> {
     try {
       const results = await this.ORM[this.table_name.toString()].findMany({
-        ...findOptions,
-        include,
+        ...findOptions.searchFilter,
+        include: findOptions.include,
       });
 
       const all = await this.ORM[this.table_name.toString()].count();
 
-      return [results, all];
-    } catch (error) {
-      console.log(error);
+      if (findOptions.cls) {
+        const traformededEntity = await this.transformMany(
+          results,
+          findOptions.cls,
+          findOptions.transformOptions,
+        );
 
+        return [traformededEntity, all];
+      } else {
+        return [results, all];
+      }
+    } catch (error) {
       return [null, 0];
     }
   }
 
-  /***
+  /**
    * find entity by id
-   * @param id
-   * @param include
-   * @param transformOptions
+   *
+   * @param {FindByIdInterface<Entity>} findOptions
+   * @return {*}  {(Promise<Entity | null>)}
+   * @memberof BaseRepository
    */
-  findOne(id: string, include?): Promise<Entity | null> {
+  findOne(findOptions: FindByIdInterface<Entity>): Promise<Entity | null> {
     return this.ORM[this.table_name.toString()]
       .findFirst({
         where: {
-          id: id,
+          id: findOptions.id,
         },
-        include,
+        include: findOptions.include,
       })
       .then((entity) => {
         if (!entity) {
           return Promise.reject(new NotFoundException());
         }
 
-        return Promise.resolve(entity ? entity : null);
+        if (findOptions.cls) {
+          return Promise.resolve(
+            entity
+              ? this.transform(
+                  entity,
+                  findOptions.cls,
+                  findOptions.transformOptions,
+                )
+              : null,
+          );
+        } else {
+          return Promise.resolve(entity ? entity : null);
+        }
       })
       .catch((error) => Promise.reject(error));
   }
 
   /**
    * find by condition
-   * @param fieldName
-   * @param value
-   * @param include
-   * @param transformOptions
+   *
+   * @param {string} fieldName
+   * @param {*} value
+   * @param {*} [include]
+   * @return {*}  {(Promise<Entity | null>)}
+   * @memberof BaseRepository
    */
-  async findBy(
-    fieldName: string,
-    value: any,
-    include?,
-  ): Promise<Entity | null> {
+  async findBy(findOptions: FindByInterface<Entity>): Promise<Entity | null> {
     return this.ORM[this.table_name.toString()]
       .findFirst({
         where: {
-          [fieldName]: value,
+          [findOptions.fieldName]: findOptions.value,
         },
-        include,
+        include: findOptions.include,
       })
       .then((entity) => {
         if (!entity) {
           return null; //Promise.reject(new NotFoundException()); see if can use this instead
         }
 
-        return Promise.resolve(entity ? entity : null);
+        if (findOptions.cls) {
+          return Promise.resolve(
+            entity
+              ? this.transform(
+                  entity,
+                  findOptions.cls,
+                  findOptions.transformOptions,
+                )
+              : null,
+          );
+        } else {
+          return Promise.resolve(entity ? entity : null);
+        }
       })
       .catch((error) => Promise.reject(error));
   }
 
   /**
    * get count of entity by condition
-   * @param findOptions
+   *
+   * @param {*} [findOptions={}]
+   * @return {*}  {Promise<number>}
+   * @memberof BaseRepository
    */
   async countEntityByCondition(findOptions = {}): Promise<number> {
     return this.ORM[this.table_name.toString()]
@@ -137,5 +238,80 @@ export abstract class BaseRepository<Entity> implements Repository<Entity> {
         return Promise.resolve(count);
       })
       .catch((error) => Promise.reject(error));
+  }
+
+  /**
+   * Paginate entity results
+   *
+   * @param {FindPaginateInterface<Entity>} paginateData
+   * @return {*}  {Promise<Pagination<Entity>>}
+   * @memberof BaseRepository
+   */
+  async paginate(
+    paginateData: FindPaginateInterface<Entity>,
+  ): Promise<Pagination<Entity>> {
+    const qb = new QueryBuilder({
+      page: paginateData.searchFilter.page,
+      perPage: paginateData.searchFilter.perPage,
+    });
+    const filterOptions = qb.paginate().build();
+
+    const [results, total] = await this.findAndCount({
+      searchFilter: filterOptions,
+      include: paginateData.include,
+      cls: paginateData.cls,
+      transformOptions: paginateData.transformOptions,
+    });
+
+    const currentPage = Number(paginateData.searchFilter?.page) || 1;
+    const perPage = Number(paginateData.searchFilter.perPage) || 10;
+    // const skip = currentPage > 0 ? perPage * (currentPage - 1) : 0;
+    const lastPage = Math.ceil(total / perPage);
+
+    return new Pagination<Entity>({
+      results: results,
+      meta: {
+        total,
+        lastPage,
+        currentPage,
+        perPage,
+        previous: currentPage > 1 ? currentPage - 1 : null,
+        next: currentPage < lastPage ? currentPage + 1 : null,
+      },
+    });
+  }
+
+  /**
+   * Transform entity
+   *
+   * @param {*} model
+   * @param {ClassConstructor<Entity>} cls
+   * @param {*} [transformOptions={}]
+   * @return {*}  {Entity}
+   * @memberof BaseRepository
+   */
+  transform(
+    model: any,
+    cls: ClassConstructor<Entity>,
+    transformOptions = {},
+  ): Entity {
+    return plainToInstance(cls, model, transformOptions) as Entity;
+  }
+
+  /**
+   *  transform array of entity
+   *
+   * @param {any[]} models
+   * @param {ClassConstructor<Entity>} cls
+   * @param {*} [transformOptions={}]
+   * @return {*}  {Entity[]}
+   * @memberof BaseRepository
+   */
+  transformMany(
+    models: any[],
+    cls: ClassConstructor<Entity>,
+    transformOptions = {},
+  ): Entity[] {
+    return models.map((model) => this.transform(model, cls, transformOptions));
   }
 }

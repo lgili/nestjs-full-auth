@@ -7,7 +7,7 @@ import { StatusCodesList } from 'src/common/constants/status-codes-list.constant
 import { CustomHttpException } from 'src/exception/custom-http.exception';
 import { AuthService } from 'src/modules/auth/auth.service';
 import { JwtPayloadDto } from 'src/modules/auth/dto/jwt-payload.dto';
-import { UserSerializer } from 'src/modules/auth/serializer/user.serializer';
+import { UserEntity } from 'src/modules/auth/entity/user.entity';
 
 @Injectable()
 export class JwtTwoFactorStrategy extends PassportStrategy(
@@ -25,9 +25,9 @@ export class JwtTwoFactorStrategy extends PassportStrategy(
     });
   }
 
-  async validate(payload: JwtPayloadDto): Promise<UserSerializer> {
+  async validate(payload: JwtPayloadDto): Promise<UserEntity> {
     const { isTwoFAAuthenticated, subject } = payload;
-    const user = await this.authService.findById(subject);
+    const user = await this.authService.getWithPassword(subject);
 
     if (!user.isTwoFAEnabled) {
       return user;

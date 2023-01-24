@@ -10,13 +10,13 @@ import { CustomHttpException } from 'src/exception/custom-http.exception';
 import { ForbiddenException } from 'src/exception/forbidden.exception';
 import { NotFoundException } from 'src/exception/not-found.exception';
 import { AuthService } from 'src/modules/auth/auth.service';
-import { UserSerializer } from 'src/modules/auth/serializer/user.serializer';
+
 // import { Pagination } from 'src/modules/paginate';
 // import { PaginationInfoInterface } from 'src/modules/paginate/pagination-info.interface';
 import { RefreshPaginateFilterDto } from 'src/modules/refresh-token/dto/refresh-paginate-filter.dto';
 import { RefreshTokenInterface } from 'src/modules/refresh-token/interface/refresh-token.interface';
-import { RefreshTokenSerializer } from 'src/modules/refresh-token/serializer/refresh-token.serializer';
 
+import { UserEntity } from '../auth/entity/user.entity';
 import { RefreshTokenEntity } from './entities/refresh-token.entity';
 import { RefreshTokenRepository } from './refresh-token.repository';
 
@@ -43,7 +43,7 @@ export class RefreshTokenService {
    * @param refreshToken
    */
   public async generateRefreshToken(
-    user: UserSerializer,
+    user: UserEntity,
     refreshToken: Partial<RefreshTokenEntity>,
   ): Promise<string> {
     const token = new RefreshTokenEntity(refreshToken);
@@ -56,7 +56,10 @@ export class RefreshTokenService {
     token.expires = expiration;
     // console.log(token);
 
-    const tokenSaved = await this.refreshTokenRepository.create(token);
+    const tokenSaved = await this.refreshTokenRepository.create({
+      data: token,
+      cls: RefreshTokenEntity,
+    });
 
     const opts: SignOptions = {
       ...BASE_OPTIONS,
@@ -77,8 +80,8 @@ export class RefreshTokenService {
    * @param encoded
    */
   public async resolveRefreshToken(encoded: string): Promise<{
-    user: UserSerializer;
-    token: RefreshTokenSerializer;
+    user: UserEntity;
+    token: RefreshTokenEntity;
   }> {
     const payload = await this.decodeRefreshToken(encoded);
     const token = await this.getStoredTokenFromRefreshTokenPayload(payload);
@@ -121,7 +124,7 @@ export class RefreshTokenService {
    */
   public async createAccessTokenFromRefreshToken(refresh: string): Promise<{
     token: string;
-    user: UserSerializer;
+    user: UserEntity;
   }> {
     const { user } = await this.resolveRefreshToken(refresh);
     const token = await this.authService.generateAccessToken(user);
@@ -162,7 +165,7 @@ export class RefreshTokenService {
    */
   async getUserFromRefreshTokenPayload(
     payload: RefreshTokenInterface,
-  ): Promise<UserSerializer> {
+  ): Promise<UserEntity> {
     const subId = payload.subject;
 
     if (!subId) {
@@ -183,7 +186,7 @@ export class RefreshTokenService {
    */
   async getStoredTokenFromRefreshTokenPayload(
     payload: RefreshTokenInterface,
-  ): Promise<RefreshTokenSerializer | null> {
+  ): Promise<RefreshTokenEntity | null> {
     const tokenId = payload.jwtid;
 
     if (!tokenId) {
@@ -193,13 +196,21 @@ export class RefreshTokenService {
         StatusCodesList.InvalidRefreshToken,
       );
     }
-    const token = await this.refreshTokenRepository.findOne(tokenId.toString());
 
-    return this.transform(token);
+    const token = await this.refreshTokenRepository.findOne({
+      id: tokenId.toString(),
+      cls: RefreshTokenEntity,
+    });
+
+    return token;
   }
 
-  async updateRefreshToken(token: RefreshTokenSerializer) {
-    return await this.refreshTokenRepository.update(token.id, token);
+  async updateRefreshToken(token: RefreshTokenEntity) {
+    return await this.refreshTokenRepository.update({
+      id: token.id,
+      data: token,
+      cls: RefreshTokenEntity,
+    });
   }
 
   /**
@@ -209,7 +220,7 @@ export class RefreshTokenService {
   async getRefreshTokenByUserId(
     userId: string,
     filter: RefreshPaginateFilterDto,
-  ): Promise<RefreshTokenSerializer[]> {
+  ): Promise<RefreshTokenEntity[]> {
     const qb = new QueryBuilder({
       userId: userId,
       select: 'user',
@@ -217,10 +228,10 @@ export class RefreshTokenService {
 
     const findOptions = qb.filter().sort().build();
 
-    const tokens = await this.refreshTokenRepository.findAll(
-      findOptions,
-      userId,
-    );
+    const tokens = await this.refreshTokenRepository.findAll({
+      searchFilter: findOptions,
+      cls: RefreshTokenEntity,
+    });
 
     // const { page, skip, limit } = paginationInfo;
     // findOptions.take = paginationInfo.limit;
@@ -239,7 +250,7 @@ export class RefreshTokenService {
     //   previous: page > 1 ? page - 1 : 0,
     //   next: total > skip + limit ? page + 1 : 0
     // });
-    return this.transformMany(tokens);
+    return tokens;
   }
 
   /**
@@ -250,8 +261,10 @@ export class RefreshTokenService {
   async revokeRefreshTokenById(
     id: string,
     userId: string,
-  ): Promise<RefreshTokenSerializer> {
-    const token = await this.refreshTokenRepository.findOne(id);
+  ): Promise<RefreshTokenEntity> {
+    const token = await this.refreshTokenRepository.findOne({
+      id,
+    });
 
     if (!token) {
       throw new NotFoundException();
@@ -262,12 +275,13 @@ export class RefreshTokenService {
     }
     token.isRevoked = true;
 
-    const tokenSaved = await this.refreshTokenRepository.update(
-      token.id,
-      token,
-    );
+    const tokenSaved = await this.refreshTokenRepository.update({
+      id: token.id,
+      data: token,
+      cls: RefreshTokenEntity,
+    });
 
-    return this.transform(tokenSaved);
+    return tokenSaved;
   }
 
   // async getRefreshTokenGroupedData(field: string) {
@@ -279,28 +293,4 @@ export class RefreshTokenService {
   //     .groupBy(`token.${field}`)
   //     .getRawMany();
   // }
-
-  /**
-   * transform entity
-   * @param model
-   * @param transformOptions
-   */
-  transform(
-    model: RefreshTokenEntity,
-    transformOptions = {},
-  ): RefreshTokenSerializer {
-    return plainToInstance(RefreshTokenSerializer, model, transformOptions);
-  }
-
-  /**
-   * transform array of entity
-   * @param models
-   * @param transformOptions
-   */
-  transformMany(
-    models: RefreshTokenEntity[],
-    transformOptions = {},
-  ): RefreshTokenSerializer[] {
-    return models.map((model) => this.transform(model, transformOptions));
-  }
 }

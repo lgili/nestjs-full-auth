@@ -35,7 +35,10 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
    * @param name
    */
   async findByName(name: string) {
-    return await this.roleRepository.findBy('name', name);
+    return await this.roleRepository.findBy({
+      fieldName: 'name',
+      value: name,
+    });
   }
 
   /**
@@ -47,7 +50,10 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     const permission = await this.getPermissionByIds(permissions);
     const role = new RoleEntity(createRoleDto);
     role.permissions = permission;
-    const roleSaved = await this.roleRepository.create(role);
+
+    const roleSaved = await this.roleRepository.create({
+      data: role,
+    });
 
     return this.transform(roleSaved);
   }
@@ -84,7 +90,9 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     //     ...basicFieldGroupsForSerializing
     //   ]
     // });
-    const role = await this.roleRepository.findOne(id);
+    const role = await this.roleRepository.findOne({
+      id,
+    });
 
     return this.transform(role);
   }
@@ -98,7 +106,9 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     id: string,
     updateRoleDto: UpdateRoleDto,
   ): Promise<RoleSerializer> {
-    const role = await this.roleRepository.findOne(id);
+    const role = await this.roleRepository.findOne({
+      id,
+    });
 
     if (!role) {
       throw new NotFoundException();
@@ -115,8 +125,12 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
     const { permissions } = updateRoleDto;
     const permission = await this.getPermissionByIds(permissions);
     role.update(updateRoleDto);
+
     // FIXME: need to update permissions too
-    const roleUpdated = await this.roleRepository.update(role.id, role);
+    const roleUpdated = await this.roleRepository.update({
+      id: role.id,
+      data: role,
+    });
 
     return this.transform(roleUpdated);
   }

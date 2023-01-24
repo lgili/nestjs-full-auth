@@ -19,8 +19,6 @@ import { TwofaCodeDto } from 'src/modules/twofa/dto/twofa-code.dto';
 import { TwoFaStatusUpdateDto } from 'src/modules/twofa/dto/twofa-status-update.dto';
 import { TwofaService } from 'src/modules/twofa/twofa.service';
 
-import { UserSerializer } from '../auth/serializer/user.serializer';
-
 @Controller('twofa')
 export class TwofaController {
   constructor(
@@ -37,7 +35,7 @@ export class TwofaController {
     @Res()
     response: Response,
     @GetUser()
-    user: UserSerializer,
+    user: UserEntity,
     @Body()
     twofaCodeDto: TwofaCodeDto,
   ) {

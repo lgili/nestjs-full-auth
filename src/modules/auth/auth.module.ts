@@ -3,8 +3,6 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import * as config from 'config';
 import Redis from 'ioredis';
-// import { UserRepository } from 'src/modules/auth/user.repository';
-// import { UniqueValidatorPipe } from 'src/common/pipes/unique-validator.pipe';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 import { JwtTwoFactorStrategy } from 'src/common/strategy/jwt-two-factor.strategy';
 import { JwtStrategy } from 'src/common/strategy/jwt.strategy';

@@ -34,13 +34,11 @@ import { UAParser } from 'ua-parser-js';
 
 import { RefreshPaginateFilterDto } from '../refresh-token/dto/refresh-paginate-filter.dto';
 import { RefreshTokenEntity } from '../refresh-token/entities/refresh-token.entity';
-import { RefreshTokenSerializer } from '../refresh-token/serializer/refresh-token.serializer';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgetPasswordDto } from './dto/forget-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { UserLoginDto } from './dto/user-login.dto';
-import { UserSerializer } from './serializer/user.serializer';
 
 @ApiTags('user')
 @Controller()
@@ -52,7 +50,7 @@ export class AuthController {
   register(
     @Body(ValidationPipe)
     registerUserDto: RegisterUserDto,
-  ): Promise<UserSerializer> {
+  ): Promise<UserEntity> {
     return this.authService.create(registerUserDto);
   }
 
@@ -83,27 +81,24 @@ export class AuthController {
     return response.status(HttpStatus.NO_CONTENT).json({});
   }
 
-  @UseInterceptors(ClassSerializerInterceptor)
   @UseGuards(JwtTwoFactorGuard, PermissionGuard)
   @Get('/users')
   findAll(
     @Query()
     userSearchFilterDto: UserSearchFilterDto,
-  ): Promise<Pagination<UserSerializer>> {
+  ): Promise<Pagination<UserEntity>> {
     return this.authService.findAll(userSearchFilterDto);
   }
 
-  @UseInterceptors(ClassSerializerInterceptor)
   @UseGuards(JwtTwoFactorGuard, PermissionGuard)
   @Post('/users')
   create(
     @Body(ValidationPipe)
     createUserDto: CreateUserDto,
-  ): Promise<UserSerializer> {
+  ): Promise<UserEntity> {
     return this.authService.create(createUserDto);
   }
 
-  @UseInterceptors(ClassSerializerInterceptor)
   @UseGuards(JwtTwoFactorGuard, PermissionGuard)
   @Put('/users/:id')
   update(
@@ -111,7 +106,7 @@ export class AuthController {
     id: string,
     @Body()
     updateUserDto: UpdateUserDto,
-  ): Promise<UserSerializer> {
+  ): Promise<UserEntity> {
     return this.authService.update(id, updateUserDto);
   }
 
@@ -143,8 +138,6 @@ export class AuthController {
     @Query('token')
     token: string,
   ): Promise<void> {
-    console.log(token);
-
     return this.authService.activateAccount(token);
   }
 
@@ -166,17 +159,15 @@ export class AuthController {
     return this.authService.resetPassword(resetPasswordDto);
   }
 
-  @UseInterceptors(ClassSerializerInterceptor)
   @UseGuards(JwtTwoFactorGuard)
   @Get('/auth/profile')
   profile(
     @GetUser()
     user: UserEntity,
-  ): Promise<UserSerializer> {
+  ): Promise<UserEntity> {
     return this.authService.get(user);
   }
 
-  @UseInterceptors(ClassSerializerInterceptor)
   @UseGuards(JwtTwoFactorGuard)
   @Put('/auth/profile')
   @UseInterceptors(
@@ -192,7 +183,7 @@ export class AuthController {
     file: Express.Multer.File,
     @Body()
     updateUserDto: UpdateUserProfileDto,
-  ): Promise<UserSerializer> {
+  ): Promise<UserEntity> {
     if (file) {
       updateUserDto.avatar = file.filename;
     }
@@ -211,13 +202,12 @@ export class AuthController {
     return this.authService.changePassword(user, changePasswordDto);
   }
 
-  @UseInterceptors(ClassSerializerInterceptor)
   @UseGuards(JwtTwoFactorGuard, PermissionGuard)
   @Get('/users/:id')
   findOne(
     @Param('id')
     id: string,
-  ): Promise<UserSerializer> {
+  ): Promise<UserEntity> {
     return this.authService.findById(id);
   }
 
@@ -250,7 +240,7 @@ export class AuthController {
     filter: RefreshPaginateFilterDto,
     @GetUser()
     user: UserEntity,
-  ): Promise<RefreshTokenSerializer[]> {
+  ): Promise<RefreshTokenEntity[]> {
     // NEED TEST
     return this.authService.activeRefreshTokenList(user.id, filter);
   }

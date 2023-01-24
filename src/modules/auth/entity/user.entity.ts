@@ -1,37 +1,95 @@
-import { User } from '@prisma/client';
+import {
+  ApiHideProperty,
+  ApiProperty,
+  ApiPropertyOptional,
+} from '@nestjs/swagger';
 import * as bcrypt from 'bcrypt';
-import { Exclude } from 'class-transformer';
+import { Exclude, Expose, Transform, Type } from 'class-transformer';
 import { DeepPartial } from 'src/common/repository/type.repository';
 import { UserStatusEnum } from 'src/modules/auth/user-status.enum';
 import { RoleEntity } from 'src/modules/role/entities/role.entity';
 
+export const GROUP_USER = 'owner';
+export const GROUP_ALL_USERS = 'all_users';
+export const GROUP_ADMIN = 'admin';
+export const GROUP_DEFAULT = 'timestamps';
+
 /**
  * User Entity
  */
-export class UserEntity implements User {
+export class UserEntity {
+  @Expose({ groups: [GROUP_USER, GROUP_ADMIN] })
   id: string;
 
-  name: string;
-  username: string;
-
-  email: string;
-
+  @Exclude()
   password: string;
 
+  @ApiProperty()
+  username: string;
+
+  @ApiProperty()
+  email: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  @Transform(({ value }) => (value !== 'null' ? value : ''))
   address: string;
 
+  @ApiProperty()
+  @Expose({
+    groups: [GROUP_USER],
+  })
+  isTwoFAEnabled: boolean;
+
+  @ApiProperty()
+  @Transform(({ value }) => (value !== 'null' ? value : ''))
   contact: string;
 
+  @ApiProperty()
+  @Transform(({ value }) => (value !== 'null' ? value : ''))
   avatar: string;
 
+  @ApiPropertyOptional()
+  @Expose({
+    groups: [GROUP_ADMIN],
+  })
   status: UserStatusEnum;
+
+  @ApiHideProperty()
+  @Expose({
+    groups: [GROUP_USER],
+  })
+  @Type(() => RoleEntity)
+  role: RoleEntity;
+
+  @Exclude({
+    toClassOnly: true,
+  })
+  roleId: string;
+
+  @Exclude({
+    toClassOnly: true,
+  })
+  tokenValidityDate: Date;
+
+  @ApiPropertyOptional()
+  @Expose({
+    groups: [GROUP_DEFAULT],
+  })
+  created_at: Date;
+
+  @ApiPropertyOptional()
+  @Expose({
+    groups: [GROUP_DEFAULT],
+  })
+  updated_at: Date;
 
   @Exclude({
     toPlainOnly: true,
   })
   token: string;
-
-  tokenValidityDate: Date;
 
   @Exclude({
     toPlainOnly: true,
@@ -48,19 +106,10 @@ export class UserEntity implements User {
   })
   twoFAThrottleTime: Date | null;
 
-  isTwoFAEnabled: boolean;
-
   @Exclude({
     toPlainOnly: true,
   })
   skipHashPassword = false;
-
-  role: RoleEntity;
-
-  roleId: string;
-
-  created_at: Date;
-  updated_at: Date;
 
   constructor(data?: DeepPartial<UserEntity>) {
     if (data) {

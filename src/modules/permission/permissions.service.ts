@@ -30,7 +30,10 @@ export class PermissionsService extends LoadPermissionMisc {
   ): Promise<PermissionSerializer> {
     const perEntity = new PermissionEntity(createPermissionDto);
     perEntity.isDefault = true;
-    const permission = await this.permissionRepository.create(perEntity);
+
+    const permission = await this.permissionRepository.create({
+      data: perEntity,
+    });
 
     return this.transform(permission);
   }
@@ -68,7 +71,9 @@ export class PermissionsService extends LoadPermissionMisc {
         instanceToPlain(permissions),
       );
       try {
-        const entity = await this.permissionRepository.create(perEntity);
+        const entity = await this.permissionRepository.create({
+          data: perEntity,
+        });
         permissionsSaved.push(entity);
       } catch (error) {
         console.log('error to sync permission');
@@ -105,7 +110,9 @@ export class PermissionsService extends LoadPermissionMisc {
     // return this.repository.get(id, [], {
     //   groups: [...basicFieldGroupsForSerializing]
     // });
-    const permission = await this.permissionRepository.findOne(id);
+    const permission = await this.permissionRepository.findOne({
+      id,
+    });
 
     return this.transform(permission);
   }
@@ -119,7 +126,9 @@ export class PermissionsService extends LoadPermissionMisc {
     id: string,
     updatePermissionDto: UpdatePermissionDto,
   ): Promise<PermissionSerializer> {
-    const permission = await this.permissionRepository.findOne(id);
+    const permission = await this.permissionRepository.findOne({
+      id,
+    });
 
     // if (countSameDescription > 0) {
     //   throw new UnprocessableEntityException({
@@ -133,10 +142,10 @@ export class PermissionsService extends LoadPermissionMisc {
     permission.update(updatePermissionDto);
     // console.log(permission);
 
-    const updatedPermission = await this.permissionRepository.update(
-      permission.id,
-      permission,
-    );
+    const updatedPermission = await this.permissionRepository.update({
+      id: permission.id,
+      data: permission,
+    });
 
     return this.transform(updatedPermission);
   }
@@ -156,7 +165,9 @@ export class PermissionsService extends LoadPermissionMisc {
   async whereInIds(ids: string[]): Promise<PermissionEntity[]> {
     const permission: PermissionEntity[] = [];
     ids.forEach(async (id) => {
-      const result = await this.permissionRepository.findOne(id);
+      const result = await this.permissionRepository.findOne({
+        id,
+      });
 
       if (result) {
         permission.push(result);
