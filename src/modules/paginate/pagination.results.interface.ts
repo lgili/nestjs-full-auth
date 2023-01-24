@@ -1,12 +1,3 @@
-// export interface PaginationResultInterface<PaginationEntity> {
-//   results: PaginationEntity[];
-//   currentPage: number;
-//   pageSize: number;
-//   totalItems: number;
-//   next: number;
-//   previous: number;
-// }
-
 export interface PaginationMeta {
   total: number;
   lastPage: number;

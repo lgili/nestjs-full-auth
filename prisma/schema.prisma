@@ -29,8 +29,8 @@ model User {
   role              Role      @relation(fields: [roleId], references: [id])
   roleId String
 
-  created_at DateTime @default(now())
-  updated_at DateTime @default(now()) @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
 
   @@map("users")
@@ -42,8 +42,10 @@ model Role {
   description String
 
   permissions        Permission[]
-  // PermissionsOnRoles PermissionsOnRoles[]
   User               User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@map("roles")
 }
@@ -58,22 +60,12 @@ model Permission {
   isDefault   Boolean @default(false)
 
   roles              Role[] 
-  // PermissionsOnRoles PermissionsOnRoles[]
-
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  
   @@map("permissions")
 }
 
-
-// model PermissionsOnRoles {
-//   // id String @id @default(uuid())
-//   role         Role       @relation(fields: [roleId], references: [id])
-//   roleId       String // relation scalar field (used in the `@relation` attribute above)
-//   permission   Permission @relation(fields: [permissionId], references: [id])
-//   permissionId String // relation scalar field (used in the `@relation` attribute above)
-//   assignedAt   DateTime   @default(now())
-
-//   @@id([roleId, permissionId])
-// }
 
 model EmailTemplate {
   id String @id @default(uuid())
@@ -84,6 +76,9 @@ model EmailTemplate {
   subject   String
   body      String
   isDefault Boolean
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@map("emailsTemplate")
 }
