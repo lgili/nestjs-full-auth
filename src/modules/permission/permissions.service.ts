@@ -1,5 +1,6 @@
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
+import QueryBuilder from 'src/common/repository/filter-prisma';
 import {
   PermissionConfiguration,
   RoutePayloadInterface,
@@ -99,8 +100,15 @@ export class PermissionsService extends LoadPermissionMisc {
     //     groups: [...basicFieldGroupsForSerializing]
     //   }
     // );
+    const qr = new QueryBuilder({
+      page: permissionFilterDto.page,
+      perPage: permissionFilterDto.perPage,
+      sort: 'resource, description, path, method',
+    });
+    const filterOptions = qr.filter().paginate().sort().build();
+
     return await this.permissionRepository.paginate({
-      searchFilter: permissionFilterDto,
+      searchFilter: filterOptions,
       cls: PermissionEntity,
       transformOptions: {
         groups: [GROUP_DEFAULT],

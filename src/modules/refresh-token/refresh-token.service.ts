@@ -1,6 +1,5 @@
 import { forwardRef, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { plainToInstance } from 'class-transformer';
 import * as config from 'config';
 import { SignOptions, TokenExpiredError } from 'jsonwebtoken';
 import { ExceptionTitleList } from 'src/common/constants/exception-title-list.constants';
@@ -10,13 +9,13 @@ import { CustomHttpException } from 'src/exception/custom-http.exception';
 import { ForbiddenException } from 'src/exception/forbidden.exception';
 import { NotFoundException } from 'src/exception/not-found.exception';
 import { AuthService } from 'src/modules/auth/auth.service';
-
 // import { Pagination } from 'src/modules/paginate';
 // import { PaginationInfoInterface } from 'src/modules/paginate/pagination-info.interface';
 import { RefreshPaginateFilterDto } from 'src/modules/refresh-token/dto/refresh-paginate-filter.dto';
 import { RefreshTokenInterface } from 'src/modules/refresh-token/interface/refresh-token.interface';
 
 import { UserEntity } from '../auth/entity/user.entity';
+import { Pagination } from '../paginate';
 import { RefreshTokenEntity } from './entities/refresh-token.entity';
 import { RefreshTokenRepository } from './refresh-token.repository';
 
@@ -220,36 +219,22 @@ export class RefreshTokenService {
   async getRefreshTokenByUserId(
     userId: string,
     filter: RefreshPaginateFilterDto,
-  ): Promise<RefreshTokenEntity[]> {
+  ): Promise<Pagination<RefreshTokenEntity>> {
     const qb = new QueryBuilder({
       userId: userId,
       select: 'user',
+      page: filter.page,
+      perPage: filter.perPage,
+      sort: '-id',
     });
 
     const findOptions = qb.filter().sort().build();
 
-    const tokens = await this.refreshTokenRepository.findAll({
+    const tokens = await this.refreshTokenRepository.paginate({
       searchFilter: findOptions,
       cls: RefreshTokenEntity,
     });
 
-    // const { page, skip, limit } = paginationInfo;
-    // findOptions.take = paginationInfo.limit;
-    // findOptions.skip = paginationInfo.skip;
-    // findOptions.order = {
-    //   id: 'DESC'
-    // };
-    // const [results, total] = await this.repository.findAndCount(findOptions);
-    // const serializedResult = this.transformMany(tokens);
-
-    // return new Pagination<RefreshTokenSerializer>({
-    //   results: serializedResult,
-    //   totalItems: total,
-    //   pageSize: limit,
-    //   currentPage: page,
-    //   previous: page > 1 ? page - 1 : 0,
-    //   next: total > skip + limit ? page + 1 : 0
-    // });
     return tokens;
   }
 

@@ -18,7 +18,9 @@ import { CreateRoleDto } from 'src/modules/role/dto/create-role.dto';
 import { RoleFilterDto } from 'src/modules/role/dto/role-filter.dto';
 import { UpdateRoleDto } from 'src/modules/role/dto/update-role.dto';
 import { RolesService } from 'src/modules/role/roles.service';
-import { RoleSerializer } from 'src/modules/role/serializer/role.serializer';
+
+import { Pagination } from '../paginate';
+import { RoleEntity } from './entities/role.entity';
 // import { Pagination } from 'src/paginate';
 
 @ApiTags('roles')
@@ -32,7 +34,7 @@ export class RolesController {
   create(
     @Body()
     createRoleDto: CreateRoleDto,
-  ): Promise<RoleSerializer> {
+  ): Promise<RoleEntity> {
     return this.rolesService.create(createRoleDto);
   }
 
@@ -43,7 +45,7 @@ export class RolesController {
   findAll(
     @Query()
     roleFilterDto: RoleFilterDto,
-  ): Promise<RoleSerializer[]> {
+  ): Promise<Pagination<RoleEntity>> {
     return this.rolesService.findAll(roleFilterDto);
   }
 
@@ -51,7 +53,7 @@ export class RolesController {
   findOne(
     @Param('id')
     id: string,
-  ): Promise<RoleSerializer> {
+  ): Promise<RoleEntity> {
     return this.rolesService.findOne(id);
   }
 
@@ -61,7 +63,7 @@ export class RolesController {
     id: string,
     @Body()
     updateRoleDto: UpdateRoleDto,
-  ): Promise<RoleSerializer> {
+  ): Promise<RoleEntity> {
     return this.rolesService.update(id, updateRoleDto);
   }
 

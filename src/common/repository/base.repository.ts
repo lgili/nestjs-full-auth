@@ -251,8 +251,8 @@ export abstract class BaseRepository<Entity> implements Repository<Entity> {
     paginateData: FindPaginateInterface<Entity>,
   ): Promise<Pagination<Entity>> {
     const qb = new QueryBuilder({
-      page: paginateData.searchFilter.page,
-      perPage: paginateData.searchFilter.perPage,
+      page: paginateData.searchFilter.skip,
+      perPage: paginateData.searchFilter.take,
     });
     const filterOptions = qb.paginate().build();
 
@@ -263,8 +263,8 @@ export abstract class BaseRepository<Entity> implements Repository<Entity> {
       transformOptions: paginateData.transformOptions,
     });
 
-    const currentPage = Number(paginateData.searchFilter?.page) || 1;
-    const perPage = Number(paginateData.searchFilter.perPage) || 10;
+    const currentPage = Number(paginateData.searchFilter?.skip) || 1;
+    const perPage = Number(paginateData.searchFilter.take) || 10;
     // const skip = currentPage > 0 ? perPage * (currentPage - 1) : 0;
     const lastPage = Math.ceil(total / perPage);
 

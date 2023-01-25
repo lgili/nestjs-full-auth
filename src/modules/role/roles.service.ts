@@ -1,14 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import QueryBuilder from 'src/common/repository/filter-prisma';
 import { NotFoundException } from 'src/exception/not-found.exception';
 // import { Pagination } from 'src/modules/paginate';
 import { PermissionsService } from 'src/modules/permission/permissions.service';
 import { CreateRoleDto } from 'src/modules/role/dto/create-role.dto';
 import { RoleFilterDto } from 'src/modules/role/dto/role-filter.dto';
 import { UpdateRoleDto } from 'src/modules/role/dto/update-role.dto';
-import { RoleSerializer } from 'src/modules/role/serializer/role.serializer';
 
-import { RoleEntity } from './entities/role.entity';
+import { Pagination } from '../paginate';
+import { GROUP_USER, RoleEntity } from './entities/role.entity';
 import { RoleRepository } from './role.repository';
 
 @Injectable()
@@ -45,7 +45,7 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
    * create new role
    * @param createRoleDto
    */
-  async create(createRoleDto: CreateRoleDto): Promise<RoleSerializer> {
+  async create(createRoleDto: CreateRoleDto): Promise<RoleEntity> {
     const { permissions } = createRoleDto;
     const permission = await this.getPermissionByIds(permissions);
     const role = new RoleEntity(createRoleDto);
@@ -55,46 +55,49 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
       data: role,
     });
 
-    return this.transform(roleSaved);
+    return roleSaved;
   }
 
   /**
    * find and return collection of roles
    * @param roleFilterDto
    */
-  async findAll(roleFilterDto: RoleFilterDto): Promise<RoleSerializer[]> {
-    // return this.repository.paginate(
-    //   roleFilterDto,
-    //   [],
-    //   ['name', 'description'],
-    //   {
-    //     groups: [
-    //       ...adminUserGroupsForSerializing,
-    //       ...basicFieldGroupsForSerializing
-    //     ]
-    //   }
-    // );
-    const roles = await this.roleRepository.findAll();
+  async findAll(roleFilterDto: RoleFilterDto): Promise<Pagination<RoleEntity>> {
+    const qr = new QueryBuilder({
+      page: roleFilterDto.page,
+      perPage: roleFilterDto.perPage,
+      sort: 'name, description',
+    });
+    const filterOptions = qr.filter().paginate().sort().build();
 
-    return this.transformMany(roles);
+    const roles = await this.roleRepository.paginate({
+      searchFilter: filterOptions,
+      cls: RoleEntity,
+      transformOptions: {
+        groups: [GROUP_USER],
+      },
+    });
+
+    return roles;
   }
 
   /**
    * find role by id
    * @param id
    */
-  async findOne(id: string): Promise<RoleSerializer> {
-    // return this.repository.get(id, ['permission'], {
-    //   groups: [
-    //     ...adminUserGroupsForSerializing,
-    //     ...basicFieldGroupsForSerializing
-    //   ]
-    // });
+  async findOne(id: string): Promise<RoleEntity> {
     const role = await this.roleRepository.findOne({
       id,
+      include: {
+        permissions: true,
+      },
+      cls: RoleEntity,
+      transformOptions: {
+        groups: [GROUP_USER],
+      },
     });
 
-    return this.transform(role);
+    return role;
   }
 
   /**
@@ -102,10 +105,7 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
    * @param id
    * @param updateRoleDto
    */
-  async update(
-    id: string,
-    updateRoleDto: UpdateRoleDto,
-  ): Promise<RoleSerializer> {
+  async update(id: string, updateRoleDto: UpdateRoleDto): Promise<RoleEntity> {
     const role = await this.roleRepository.findOne({
       id,
     });
@@ -114,25 +114,31 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
       throw new NotFoundException();
     }
 
-    // if (checkUniqueTitle > 0) {
-    //   throw new UnprocessableEntityException({
-    //     property: 'name',
-    //     constraints: {
-    //       unique: 'already taken'
-    //     }
-    //   });
-    // }
+    const sameName = await this.roleRepository.findBy({
+      fieldName: 'title',
+      value: updateRoleDto.name,
+    });
+
+    if (sameName) {
+      throw new UnprocessableEntityException({
+        property: 'name',
+        constraints: {
+          unique: 'already taken',
+        },
+      });
+    }
     const { permissions } = updateRoleDto;
     const permission = await this.getPermissionByIds(permissions);
-    role.update(updateRoleDto);
+    const updateRole = new RoleEntity(updateRoleDto);
+    updateRole.permissions = permission;
 
     // FIXME: need to update permissions too
     const roleUpdated = await this.roleRepository.update({
       id: role.id,
-      data: role,
+      data: updateRole,
     });
 
-    return this.transform(roleUpdated);
+    return roleUpdated;
   }
 
   /**
@@ -142,23 +148,5 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
   async remove(id: string): Promise<void> {
     await this.findOne(id);
     await this.roleRepository.delete(id);
-  }
-
-  /**
-   * transform entity
-   * @param model
-   * @param transformOptions
-   */
-  transform(model: RoleEntity, transformOptions = {}): RoleSerializer {
-    return plainToInstance(RoleSerializer, model, transformOptions);
-  }
-
-  /**
-   * transform array of entity
-   * @param models
-   * @param transformOptions
-   */
-  transformMany(models: RoleEntity[], transformOptions = {}): RoleSerializer[] {
-    return models.map((model) => this.transform(model, transformOptions));
   }
 }

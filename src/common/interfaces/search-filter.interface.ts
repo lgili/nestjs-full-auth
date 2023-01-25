@@ -1,5 +1,6 @@
 export interface SearchFilterInterface {
-  keywords?: string;
-  perPage?: number;
-  page?: number;
+  where?: string;
+  orderBy?: string;
+  skip?: number;
+  take?: number;
 }

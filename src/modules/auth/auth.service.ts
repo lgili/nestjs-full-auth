@@ -16,6 +16,7 @@ import {
 import { ExceptionTitleList } from 'src/common/constants/exception-title-list.constants';
 import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
 import { ValidationPayloadInterface } from 'src/common/interfaces/validation-error.interface';
+import QueryBuilder from 'src/common/repository/filter-prisma';
 import { DeepPartial } from 'src/common/repository/type.repository';
 import { CustomHttpException } from 'src/exception/custom-http.exception';
 import { ForbiddenException } from 'src/exception/forbidden.exception';
@@ -391,7 +392,11 @@ export class AuthService {
     return await this.userRepository.findOne({
       id: id,
       include: {
-        role: true,
+        role: {
+          include: {
+            permissions: true,
+          },
+        },
       },
     });
   }
@@ -401,7 +406,7 @@ export class AuthService {
    * @param id
    */
   async findById(id: string): Promise<UserEntity> {
-    return await this.userRepository.findOne({
+    const users = await this.userRepository.findOne({
       id: id,
       include: {
         role: {
@@ -415,6 +420,9 @@ export class AuthService {
         groups: [GROUP_USER, GROUP_ADMIN],
       },
     });
+    console.log(users);
+
+    return users;
   }
 
   /**
@@ -439,8 +447,15 @@ export class AuthService {
   async findAll(
     userSearchFilterDto: UserSearchFilterDto,
   ): Promise<Pagination<UserEntity>> {
+    const qr = new QueryBuilder({
+      page: userSearchFilterDto.page,
+      perPage: userSearchFilterDto.perPage,
+      sort: 'resource, description, path, method',
+    });
+    const filterOptions = qr.filter().paginate().sort().build();
+
     return await this.userRepository.paginate({
-      searchFilter: userSearchFilterDto,
+      searchFilter: filterOptions,
       cls: UserEntity,
       transformOptions: {
         groups: [GROUP_USER, GROUP_ADMIN, GROUP_DEFAULT],
@@ -711,7 +726,7 @@ export class AuthService {
   activeRefreshTokenList(
     userId: string,
     filter: RefreshPaginateFilterDto,
-  ): Promise<RefreshTokenEntity[]> {
+  ): Promise<Pagination<RefreshTokenEntity>> {
     return this.refreshTokenService.getRefreshTokenByUserId(userId, filter);
   }
 

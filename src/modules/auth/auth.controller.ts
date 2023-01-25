@@ -240,7 +240,7 @@ export class AuthController {
     filter: RefreshPaginateFilterDto,
     @GetUser()
     user: UserEntity,
-  ): Promise<RefreshTokenEntity[]> {
+  ): Promise<Pagination<RefreshTokenEntity>> {
     // NEED TEST
     return this.authService.activeRefreshTokenList(user.id, filter);
   }

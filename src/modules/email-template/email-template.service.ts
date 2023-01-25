@@ -1,6 +1,7 @@
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { ExceptionTitleList } from 'src/common/constants/exception-title-list.constants';
 import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
+import QueryBuilder from 'src/common/repository/filter-prisma';
 import { ForbiddenException } from 'src/exception/forbidden.exception';
 import { CreateEmailTemplateDto } from 'src/modules/email-template/dto/create-email-template.dto';
 import { EmailTemplatesSearchFilterDto } from 'src/modules/email-template/dto/email-templates-search-filter.dto';
@@ -72,8 +73,15 @@ export class EmailTemplateService {
       [],
       ['title', 'subject', 'body', 'sender']
     );*/
+    const qr = new QueryBuilder({
+      page: filter.page,
+      perPage: filter.perPage,
+      sort: 'title, subject, body, sender',
+    });
+    const filterOptions = qr.filter().paginate().sort().build();
+
     return await this.emailTemplateRepository.paginate({
-      searchFilter: filter,
+      searchFilter: filterOptions,
       cls: EmailTemplateEntity,
     });
   }

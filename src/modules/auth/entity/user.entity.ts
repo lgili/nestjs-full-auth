@@ -117,12 +117,6 @@ export class UserEntity {
     }
   }
 
-  async update(data?: Partial<UserEntity>) {
-    if (data) {
-      Object.assign(this, data);
-    }
-  }
-
   async hashPasswordBeforeInsert() {
     if (this.password && !this.skipHashPassword) {
       await this.hashPassword();
