@@ -1,10 +1,9 @@
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
-import QueryBuilder from 'src/common/repository/filter-prisma';
+import { QueryPrisma } from 'src/common/repository/query-buider-frontend/interfaces/Query';
 import { NotFoundException } from 'src/exception/not-found.exception';
 // import { Pagination } from 'src/modules/paginate';
 import { PermissionsService } from 'src/modules/permission/permissions.service';
 import { CreateRoleDto } from 'src/modules/role/dto/create-role.dto';
-import { RoleFilterDto } from 'src/modules/role/dto/role-filter.dto';
 import { UpdateRoleDto } from 'src/modules/role/dto/update-role.dto';
 
 import { Pagination } from '../paginate';
@@ -62,16 +61,17 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
    * find and return collection of roles
    * @param roleFilterDto
    */
-  async findAll(roleFilterDto: RoleFilterDto): Promise<Pagination<RoleEntity>> {
-    const qr = new QueryBuilder({
-      page: roleFilterDto.page,
-      perPage: roleFilterDto.perPage,
-      sort: 'name, description',
-    });
-    const filterOptions = qr.filter().paginate().sort().build();
+  async findAll(roleFilterDto: QueryPrisma): Promise<Pagination<RoleEntity>> {
+    // const qr = new QueryBuilder({
+    //   page: roleFilterDto.page,
+    //   perPage: roleFilterDto.perPage,
+    //   sort: 'name, description',
+    // });
+    // const filterOptions = qr.filter().paginate().sort().build();
+    // const filterOptions = await Querybuilder.query(roleFilterDto);
 
     const roles = await this.roleRepository.paginate({
-      searchFilter: filterOptions,
+      searchFilter: roleFilterDto,
       cls: RoleEntity,
       transformOptions: {
         groups: [GROUP_USER],
@@ -86,7 +86,7 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
    * @param id
    */
   async findOne(id: string): Promise<RoleEntity> {
-    const role = await this.roleRepository.findOne({
+    const role = await this.roleRepository.findById({
       id,
       include: {
         permissions: true,
@@ -106,7 +106,7 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
    * @param updateRoleDto
    */
   async update(id: string, updateRoleDto: UpdateRoleDto): Promise<RoleEntity> {
-    const role = await this.roleRepository.findOne({
+    const role = await this.roleRepository.findById({
       id,
     });
 

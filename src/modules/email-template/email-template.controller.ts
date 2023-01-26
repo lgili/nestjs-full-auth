@@ -14,8 +14,8 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import JwtTwoFactorGuard from 'src/common/guard/jwt-two-factor.guard';
 import { PermissionGuard } from 'src/common/guard/permission.guard';
+import { QueryPrisma } from 'src/common/repository/query-buider-frontend/interfaces/Query';
 import { CreateEmailTemplateDto } from 'src/modules/email-template/dto/create-email-template.dto';
-import { EmailTemplatesSearchFilterDto } from 'src/modules/email-template/dto/email-templates-search-filter.dto';
 import { UpdateEmailTemplateDto } from 'src/modules/email-template/dto/update-email-template.dto';
 import { EmailTemplateService } from 'src/modules/email-template/email-template.service';
 
@@ -39,7 +39,7 @@ export class EmailTemplateController {
   @Get()
   findAll(
     @Query()
-    filter: EmailTemplatesSearchFilterDto,
+    filter: QueryPrisma,
   ): Promise<Pagination<EmailTemplateEntity>> {
     return this.emailTemplateService.findAll(filter);
   }

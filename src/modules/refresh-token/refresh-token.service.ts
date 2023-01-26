@@ -4,14 +4,11 @@ import * as config from 'config';
 import { SignOptions, TokenExpiredError } from 'jsonwebtoken';
 import { ExceptionTitleList } from 'src/common/constants/exception-title-list.constants';
 import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
-import QueryBuilder from 'src/common/repository/filter-prisma';
+import { QueryPrisma } from 'src/common/repository/query-buider-frontend/interfaces/Query';
 import { CustomHttpException } from 'src/exception/custom-http.exception';
 import { ForbiddenException } from 'src/exception/forbidden.exception';
 import { NotFoundException } from 'src/exception/not-found.exception';
 import { AuthService } from 'src/modules/auth/auth.service';
-// import { Pagination } from 'src/modules/paginate';
-// import { PaginationInfoInterface } from 'src/modules/paginate/pagination-info.interface';
-import { RefreshPaginateFilterDto } from 'src/modules/refresh-token/dto/refresh-paginate-filter.dto';
 import { RefreshTokenInterface } from 'src/modules/refresh-token/interface/refresh-token.interface';
 
 import { UserEntity } from '../auth/entity/user.entity';
@@ -196,7 +193,7 @@ export class RefreshTokenService {
       );
     }
 
-    const token = await this.refreshTokenRepository.findOne({
+    const token = await this.refreshTokenRepository.findById({
       id: tokenId.toString(),
       cls: RefreshTokenEntity,
     });
@@ -218,20 +215,22 @@ export class RefreshTokenService {
    */
   async getRefreshTokenByUserId(
     userId: string,
-    filter: RefreshPaginateFilterDto,
+    filter: QueryPrisma,
   ): Promise<Pagination<RefreshTokenEntity>> {
-    const qb = new QueryBuilder({
-      userId: userId,
-      select: 'user',
-      page: filter.page,
-      perPage: filter.perPage,
-      sort: '-id',
-    });
+    // const qb = new QueryBuilder({
+    //   userId: userId,
+    //   select: 'user',
+    //   page: filter.page,
+    //   perPage: filter.perPage,
+    //   sort: '-id',
+    // });
 
-    const findOptions = qb.filter().sort().build();
+    // const findOptions = qb.filter().sort().build();
+    // const findOptions = await Querybuilder.query(filter);
+    filter.filter = [{ path: userId, value: userId }];
 
     const tokens = await this.refreshTokenRepository.paginate({
-      searchFilter: findOptions,
+      searchFilter: filter,
       cls: RefreshTokenEntity,
     });
 
@@ -247,7 +246,7 @@ export class RefreshTokenService {
     id: string,
     userId: string,
   ): Promise<RefreshTokenEntity> {
-    const token = await this.refreshTokenRepository.findOne({
+    const token = await this.refreshTokenRepository.findById({
       id,
     });
 

@@ -1,12 +1,11 @@
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
-import QueryBuilder from 'src/common/repository/filter-prisma';
+import { QueryPrisma } from 'src/common/repository/query-buider-frontend/interfaces/Query';
 import {
   PermissionConfiguration,
   RoutePayloadInterface,
 } from 'src/config/permission-config';
 import { CreatePermissionDto } from 'src/modules/permission/dto/create-permission.dto';
-import { PermissionFilterDto } from 'src/modules/permission/dto/permission-filter.dto';
 import { UpdatePermissionDto } from 'src/modules/permission/dto/update-permission.dto';
 import {
   GROUP_DEFAULT,
@@ -90,7 +89,7 @@ export class PermissionsService extends LoadPermissionMisc {
    * @param permissionFilterDto
    */
   async findAll(
-    permissionFilterDto: PermissionFilterDto,
+    permissionFilterDto: QueryPrisma,
   ): Promise<Pagination<PermissionEntity>> {
     // return this.repository.paginate(
     //   permissionFilterDto,
@@ -100,15 +99,16 @@ export class PermissionsService extends LoadPermissionMisc {
     //     groups: [...basicFieldGroupsForSerializing]
     //   }
     // );
-    const qr = new QueryBuilder({
-      page: permissionFilterDto.page,
-      perPage: permissionFilterDto.perPage,
-      sort: 'resource, description, path, method',
-    });
-    const filterOptions = qr.filter().paginate().sort().build();
+    // const qr = new QueryBuilder({
+    //   page: permissionFilterDto.page,
+    //   perPage: permissionFilterDto.perPage,
+    //   sort: 'resource, description, path, method',
+    // });
+    // const filterOptions = qr.filter().paginate().sort().build();
+    // const filterOptions = await Querybuilder.query(permissionFilterDto);
 
     return await this.permissionRepository.paginate({
-      searchFilter: filterOptions,
+      searchFilter: permissionFilterDto,
       cls: PermissionEntity,
       transformOptions: {
         groups: [GROUP_DEFAULT],
@@ -121,7 +121,7 @@ export class PermissionsService extends LoadPermissionMisc {
    * @param id
    */
   async findOne(id: string): Promise<PermissionEntity> {
-    const permission = await this.permissionRepository.findOne({
+    const permission = await this.permissionRepository.findById({
       id,
       cls: PermissionEntity,
       transformOptions: {
@@ -141,7 +141,7 @@ export class PermissionsService extends LoadPermissionMisc {
     id: string,
     updatePermissionDto: UpdatePermissionDto,
   ): Promise<PermissionEntity> {
-    const permission = await this.permissionRepository.findOne({
+    const permission = await this.permissionRepository.findById({
       id,
       cls: PermissionEntity,
     });
@@ -184,7 +184,7 @@ export class PermissionsService extends LoadPermissionMisc {
   async whereInIds(ids: string[]): Promise<PermissionEntity[]> {
     const permission: PermissionEntity[] = [];
     ids.forEach(async (id) => {
-      const result = await this.permissionRepository.findOne({
+      const result = await this.permissionRepository.findById({
         id,
       });
 

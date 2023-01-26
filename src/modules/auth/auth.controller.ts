@@ -23,16 +23,15 @@ import { GetUser } from 'src/common/decorators/get-user.decorator';
 import JwtTwoFactorGuard from 'src/common/guard/jwt-two-factor.guard';
 import { PermissionGuard } from 'src/common/guard/permission.guard';
 import { multerOptionsHelper } from 'src/common/helper/multer-options.helper';
+import { QueryPrisma } from 'src/common/repository/query-buider-frontend/interfaces/Query';
 import { AuthService } from 'src/modules/auth/auth.service';
 import { CreateUserDto } from 'src/modules/auth/dto/create-user.dto';
 import { RegisterUserDto } from 'src/modules/auth/dto/register-user.dto';
 import { UpdateUserDto } from 'src/modules/auth/dto/update-user.dto';
-import { UserSearchFilterDto } from 'src/modules/auth/dto/user-search-filter.dto';
 import { UserEntity } from 'src/modules/auth/entity/user.entity';
 import { Pagination } from 'src/modules/paginate';
 import { UAParser } from 'ua-parser-js';
 
-import { RefreshPaginateFilterDto } from '../refresh-token/dto/refresh-paginate-filter.dto';
 import { RefreshTokenEntity } from '../refresh-token/entities/refresh-token.entity';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgetPasswordDto } from './dto/forget-password.dto';
@@ -85,7 +84,7 @@ export class AuthController {
   @Get('/users')
   findAll(
     @Query()
-    userSearchFilterDto: UserSearchFilterDto,
+    userSearchFilterDto: QueryPrisma,
   ): Promise<Pagination<UserEntity>> {
     return this.authService.findAll(userSearchFilterDto);
   }
@@ -237,7 +236,7 @@ export class AuthController {
   @Get('/auth/token-info')
   getRefreshToken(
     @Query()
-    filter: RefreshPaginateFilterDto,
+    filter: QueryPrisma,
     @GetUser()
     user: UserEntity,
   ): Promise<Pagination<RefreshTokenEntity>> {

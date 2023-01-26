@@ -11,17 +11,16 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import JwtTwoFactorGuard from 'src/common/guard/jwt-two-factor.guard';
 import { PermissionGuard } from 'src/common/guard/permission.guard';
+import { QueryPrisma } from 'src/common/repository/query-buider-frontend/interfaces/Query';
 import { CreateRoleDto } from 'src/modules/role/dto/create-role.dto';
-import { RoleFilterDto } from 'src/modules/role/dto/role-filter.dto';
 import { UpdateRoleDto } from 'src/modules/role/dto/update-role.dto';
 import { RolesService } from 'src/modules/role/roles.service';
 
 import { Pagination } from '../paginate';
 import { RoleEntity } from './entities/role.entity';
-// import { Pagination } from 'src/paginate';
 
 @ApiTags('roles')
 @UseGuards(JwtTwoFactorGuard, PermissionGuard)
@@ -39,12 +38,12 @@ export class RolesController {
   }
 
   @Get()
-  @ApiQuery({
-    type: RoleFilterDto,
-  })
+  // @ApiQuery({
+  //   type: QueryPrisma,
+  // })
   findAll(
     @Query()
-    roleFilterDto: RoleFilterDto,
+    roleFilterDto: QueryPrisma,
   ): Promise<Pagination<RoleEntity>> {
     return this.rolesService.findAll(roleFilterDto);
   }

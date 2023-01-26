@@ -11,11 +11,11 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import JwtTwoFactorGuard from 'src/common/guard/jwt-two-factor.guard';
 import { PermissionGuard } from 'src/common/guard/permission.guard';
+import { QueryPrisma } from 'src/common/repository/query-buider-frontend/interfaces/Query';
 import { CreatePermissionDto } from 'src/modules/permission/dto/create-permission.dto';
-import { PermissionFilterDto } from 'src/modules/permission/dto/permission-filter.dto';
 import { UpdatePermissionDto } from 'src/modules/permission/dto/update-permission.dto';
 import { PermissionsService } from 'src/modules/permission/permissions.service';
 
@@ -38,12 +38,12 @@ export class PermissionsController {
   }
 
   @Get()
-  @ApiQuery({
-    type: PermissionFilterDto,
-  })
+  // @ApiQuery({
+  //   type: QueryPrisma,
+  // })
   findAll(
     @Query()
-    permissionFilterDto: PermissionFilterDto,
+    permissionFilterDto: QueryPrisma,
   ): Promise<Pagination<PermissionEntity>> {
     return this.permissionsService.findAll(permissionFilterDto);
   }

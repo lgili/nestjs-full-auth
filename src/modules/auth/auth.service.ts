@@ -16,13 +16,13 @@ import {
 import { ExceptionTitleList } from 'src/common/constants/exception-title-list.constants';
 import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
 import { ValidationPayloadInterface } from 'src/common/interfaces/validation-error.interface';
-import QueryBuilder from 'src/common/repository/filter-prisma';
+import { QueryPrisma } from 'src/common/repository/query-buider-frontend/interfaces/Query';
+// import { QueryString } from 'src/common/repository/query-buider-frontend/Querybuilder';
 import { DeepPartial } from 'src/common/repository/type.repository';
 import { CustomHttpException } from 'src/exception/custom-http.exception';
 import { ForbiddenException } from 'src/exception/forbidden.exception';
 import { NotFoundException } from 'src/exception/not-found.exception';
 import { UnauthorizedException } from 'src/exception/unauthorized.exception';
-import { UserSearchFilterDto } from 'src/modules/auth/dto/user-search-filter.dto';
 import {
   GROUP_ADMIN,
   GROUP_DEFAULT,
@@ -35,7 +35,6 @@ import { RefreshTokenEntity } from 'src/modules/refresh-token/entities/refresh-t
 
 import { MailJobInterface } from '../mail/interface/mail-job.interface';
 import { MailService } from '../mail/mail.service';
-import { RefreshPaginateFilterDto } from '../refresh-token/dto/refresh-paginate-filter.dto';
 import { RefreshTokenService } from '../refresh-token/refresh-token.service';
 import { RolesService } from '../role/roles.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -221,7 +220,7 @@ export class AuthService {
     id: string,
     updateUserDto: Partial<UserEntity>,
   ): Promise<UserEntity> {
-    const user = await this.userRepository.findOne({
+    const user = await this.userRepository.findById({
       id: id,
       include: {
         role: true,
@@ -376,11 +375,19 @@ export class AuthService {
    * @param user
    */
   async get(user: UserEntity): Promise<UserEntity> {
+    const query: QueryPrisma = {
+      select: 'all',
+      filter: [{ path: 'id', value: user.id }],
+      populate: [
+        {
+          path: 'role',
+          select: 'all',
+        },
+      ],
+    };
+
     return await this.userRepository.findOne({
-      id: user.id,
-      include: {
-        role: true,
-      },
+      searchFilter: query,
     });
   }
 
@@ -389,15 +396,25 @@ export class AuthService {
    * @param id
    */
   async getWithPassword(id: string): Promise<UserEntity> {
-    return await this.userRepository.findOne({
-      id: id,
-      include: {
-        role: {
-          include: {
-            permissions: true,
-          },
+    const query: QueryPrisma = {
+      select: 'all',
+      filter: [{ path: 'id', value: id }],
+      populate: [
+        {
+          path: 'role',
+          select: 'all',
+          populate: [
+            {
+              path: 'permissions',
+              select: 'all',
+            },
+          ],
         },
-      },
+      ],
+    };
+
+    return await this.userRepository.findOne({
+      searchFilter: query,
     });
   }
 
@@ -406,23 +423,30 @@ export class AuthService {
    * @param id
    */
   async findById(id: string): Promise<UserEntity> {
-    const users = await this.userRepository.findOne({
-      id: id,
-      include: {
-        role: {
-          include: {
-            permissions: true,
-          },
+    const query: QueryPrisma = {
+      select: 'all',
+      filter: [{ path: 'id', value: id }],
+      populate: [
+        {
+          path: 'role',
+          select: 'all',
+          populate: [
+            {
+              path: 'permissions',
+              select: 'all',
+            },
+          ],
         },
-      },
+      ],
+    };
+
+    return await this.userRepository.findOne({
+      searchFilter: query,
       cls: UserEntity,
       transformOptions: {
         groups: [GROUP_USER, GROUP_ADMIN],
       },
     });
-    console.log(users);
-
-    return users;
   }
 
   /**
@@ -430,9 +454,13 @@ export class AuthService {
    * @param id
    */
   async findByUsername(username: string): Promise<UserEntity> {
-    return await this.userRepository.findBy({
-      fieldName: 'username',
-      value: username,
+    const query: QueryPrisma = {
+      select: 'all',
+      filter: [{ path: 'username', value: username }],
+    };
+
+    return await this.userRepository.findOne({
+      searchFilter: query,
       cls: UserEntity,
       transformOptions: {
         groups: [GROUP_USER, GROUP_ADMIN],
@@ -445,17 +473,36 @@ export class AuthService {
    * @param userSearchFilterDto
    */
   async findAll(
-    userSearchFilterDto: UserSearchFilterDto,
+    userSearchFilterDto: QueryPrisma,
   ): Promise<Pagination<UserEntity>> {
-    const qr = new QueryBuilder({
-      page: userSearchFilterDto.page,
-      perPage: userSearchFilterDto.perPage,
-      sort: 'resource, description, path, method',
-    });
-    const filterOptions = qr.filter().paginate().sort().build();
+    // use this to test if needed
+    // const query: QueryPrisma = {
+    //   select: 'all',
+    //   // filter: [{ path: 'name', value: 'lu', operator: 'contains' }],
+    //   sort: { field: 'name', criteria: 'asc' },
+    //   populate: [
+    //     {
+    //       path: 'role',
+    //       select: 'name',
+    //       populate: [
+    //         {
+    //           path: 'permissions',
+    //           select: 'all',
+    //         },
+    //       ],
+    //     },
+    //   ],
+    //   page: 3,
+    //   limit: 3,
+    // };
+    // const queryString = QueryString(query);
+    // console.log(userSearchFilterDto);
+    // console.log(queryString);
+    // const queryValidator = await Querybuilder.query(query);
+    // console.log(JSON.stringify(queryValidator));
 
     return await this.userRepository.paginate({
-      searchFilter: filterOptions,
+      searchFilter: userSearchFilterDto,
       cls: UserEntity,
       transformOptions: {
         groups: [GROUP_USER, GROUP_ADMIN, GROUP_DEFAULT],
@@ -725,7 +772,7 @@ export class AuthService {
    **/
   activeRefreshTokenList(
     userId: string,
-    filter: RefreshPaginateFilterDto,
+    filter: QueryPrisma,
   ): Promise<Pagination<RefreshTokenEntity>> {
     return this.refreshTokenService.getRefreshTokenByUserId(userId, filter);
   }
@@ -749,7 +796,7 @@ export class AuthService {
     const twoFAThrottleTime = new Date();
     twoFAThrottleTime.setSeconds(twoFAThrottleTime.getSeconds() + 60);
 
-    const user = await this.userRepository.findOne({
+    const user = await this.userRepository.findById({
       id: userId,
     });
     user.twoFASecret = secret;

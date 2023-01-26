@@ -1,16 +1,14 @@
 import { PrismaClient } from '@prisma/client';
-import { plainToInstance } from 'class-transformer';
+import { ClassConstructor, plainToInstance } from 'class-transformer';
 import { NotFoundException } from 'src/exception/not-found.exception';
 import { Pagination } from 'src/modules/paginate';
 
-import QueryBuilder from './filter-prisma';
+import { Querybuilder } from './query-buider-backend/queryBuilder';
 import {
-  ClassConstructor,
   CreateInterface,
-  FindAllInterface,
   FindByIdInterface,
   FindByInterface,
-  FindPaginateInterface,
+  FindInterface,
   Repository,
   UpdateInterface,
 } from './type.repository';
@@ -87,15 +85,16 @@ export abstract class BaseRepository<Entity> implements Repository<Entity> {
   /**
    * find all with conditions
    *
-   * @param {FindAllInterface<Entity>} [findOptions]
+   * @param {FindInterface<Entity>} [findOptions]
    * @return {*}  {Promise<Entity[]>}
    * @memberof BaseRepository
    */
-  async findAll(findOptions?: FindAllInterface<Entity>): Promise<Entity[]> {
+  async findAll(findOptions?: FindInterface<Entity>): Promise<Entity[]> {
     try {
+      const query = await Querybuilder.query(findOptions.searchFilter);
+
       const results = await this.ORM[this.table_name.toString()].findMany({
-        ...findOptions.searchFilter,
-        include: findOptions.include,
+        ...query,
       });
 
       if (findOptions.cls) {
@@ -113,19 +112,49 @@ export abstract class BaseRepository<Entity> implements Repository<Entity> {
   }
 
   /**
+   * find one with conditions
+   *
+   * @param {FindInterface<Entity>} [findOptions]
+   * @return {*}  {Promise<Entity[]>}
+   * @memberof BaseRepository
+   */
+  async findOne(findOptions?: FindInterface<Entity>): Promise<Entity | null> {
+    try {
+      const query = await Querybuilder.query(findOptions.searchFilter);
+
+      const result = await this.ORM[this.table_name.toString()].findFirst({
+        ...query,
+      });
+
+      if (findOptions.cls) {
+        return await this.transform(
+          result,
+          findOptions.cls,
+          findOptions.transformOptions,
+        );
+      } else {
+        return result;
+      }
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
    * find and count entity
    *
-   * @param {FindAllInterface<Entity>} [findOptions]
+   * @param {FindInterface<Entity>} [findOptions]
    * @return {*}  {Promise<[Entity[], number]>}
    * @memberof BaseRepository
    */
   async findAndCount(
-    findOptions?: FindAllInterface<Entity>,
+    findOptions?: FindInterface<Entity>,
   ): Promise<[Entity[], number]> {
     try {
+      const query = await Querybuilder.query(findOptions.searchFilter);
+
       const results = await this.ORM[this.table_name.toString()].findMany({
-        ...findOptions.searchFilter,
-        include: findOptions.include,
+        ...query,
       });
 
       const all = await this.ORM[this.table_name.toString()].count();
@@ -153,7 +182,7 @@ export abstract class BaseRepository<Entity> implements Repository<Entity> {
    * @return {*}  {(Promise<Entity | null>)}
    * @memberof BaseRepository
    */
-  findOne(findOptions: FindByIdInterface<Entity>): Promise<Entity | null> {
+  findById(findOptions: FindByIdInterface<Entity>): Promise<Entity | null> {
     return this.ORM[this.table_name.toString()]
       .findFirst({
         where: {
@@ -243,29 +272,20 @@ export abstract class BaseRepository<Entity> implements Repository<Entity> {
   /**
    * Paginate entity results
    *
-   * @param {FindPaginateInterface<Entity>} paginateData
+   * @param {FindInterface<Entity>} paginateData
    * @return {*}  {Promise<Pagination<Entity>>}
    * @memberof BaseRepository
    */
   async paginate(
-    paginateData: FindPaginateInterface<Entity>,
+    findOptions: FindInterface<Entity>,
   ): Promise<Pagination<Entity>> {
-    const qb = new QueryBuilder({
-      page: paginateData.searchFilter.skip,
-      perPage: paginateData.searchFilter.take,
-    });
-    const filterOptions = qb.paginate().build();
+    const [results, total] = await this.findAndCount(findOptions);
 
-    const [results, total] = await this.findAndCount({
-      searchFilter: filterOptions,
-      include: paginateData.include,
-      cls: paginateData.cls,
-      transformOptions: paginateData.transformOptions,
-    });
+    const query = await Querybuilder.query(findOptions.searchFilter);
 
-    const currentPage = Number(paginateData.searchFilter?.skip) || 1;
-    const perPage = Number(paginateData.searchFilter.take) || 10;
-    // const skip = currentPage > 0 ? perPage * (currentPage - 1) : 0;
+    const currentPage = Number(query.skip) || 1;
+    const perPage = Number(query.take) || 10;
+
     const lastPage = Math.ceil(total / perPage);
 
     return new Pagination<Entity>({

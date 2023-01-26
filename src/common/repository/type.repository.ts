@@ -1,18 +1,20 @@
-import { ClassTransformOptions } from 'class-transformer';
+import { ClassConstructor, ClassTransformOptions } from 'class-transformer';
 
-import { SearchFilterInterface } from '../interfaces/search-filter.interface';
+import { QueryPrisma } from './query-buider-frontend/interfaces/Query';
 
 interface Reader<Entity> {
-  findAll(findOptions?: FindAllInterface<Entity>): Promise<Entity[]>;
+  findAll(findOptions?: FindInterface<Entity>): Promise<Entity[]>;
 
-  findOne(findOptions: FindByIdInterface<Entity>): Promise<Entity | null>;
+  findOne(findOptions?: FindInterface<Entity>): Promise<Entity | null>;
+
+  findById(findOptions: FindByIdInterface<Entity>): Promise<Entity | null>;
 
   findBy(findOptions: FindByInterface<Entity>): Promise<Entity | null>;
 
   countEntityByCondition(conditions: ObjectLiteral): Promise<number>;
 
   findAndCount(
-    findOptions?: FindAllInterface<Entity>,
+    findOptions?: FindInterface<Entity>,
   ): Promise<[Entity[], number]>;
 }
 
@@ -51,16 +53,8 @@ export interface FindByInterface<K> {
   transformOptions?: ClassTransformOptions;
 }
 
-export interface FindAllInterface<K> {
-  searchFilter: any;
-  include?: any;
-  cls?: ClassConstructor<K>;
-  transformOptions?: ClassTransformOptions;
-}
-
-export interface FindPaginateInterface<K> {
-  searchFilter: DeepPartial<SearchFilterInterface>;
-  include?: any;
+export interface FindInterface<K> {
+  searchFilter: QueryPrisma;
   cls?: ClassConstructor<K>;
   transformOptions?: ClassTransformOptions;
 }
@@ -98,8 +92,4 @@ export declare type QueryDeepPartialEntity<T> = {
         ? ReadonlyArray<QueryDeepPartialEntity<U>>
         : QueryDeepPartialEntity<T[P]>)
     | (() => string);
-};
-
-export declare type ClassConstructor<T> = {
-  new (...args: any[]): T;
 };
