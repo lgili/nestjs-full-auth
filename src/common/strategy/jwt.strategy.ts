@@ -3,9 +3,10 @@ import { PassportStrategy } from '@nestjs/passport';
 import * as config from 'config';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { UnauthorizedException } from 'src/exception/unauthorized.exception';
-import { AuthService } from 'src/modules/auth/auth.service';
 import { JwtPayloadDto } from 'src/modules/auth/dto/jwt-payload.dto';
 import { UserEntity } from 'src/modules/auth/entity/user.entity';
+import { UserRepository } from 'src/modules/auth/user.repository';
+import { QueryPrisma } from '../repository/query-buider-frontend/interfaces/Query';
 
 const cookieExtractor = (req) => {
   return req?.cookies?.Authentication;
@@ -13,7 +14,7 @@ const cookieExtractor = (req) => {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt-strategy') {
-  constructor(private authService: AuthService) {
+  constructor(private userRepository: UserRepository) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([cookieExtractor]),
       secretOrKey: process.env.JWT_SECRET || config.get('jwt.secret'),
@@ -26,7 +27,27 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt-strategy') {
    */
   async validate(payload: JwtPayloadDto): Promise<UserEntity> {
     const { subject } = payload;
-    const user = await this.authService.getWithPassword(subject);
+
+    const query: QueryPrisma = {
+      select: 'all',
+      filter: [{ path: 'id', value: subject }],
+      populate: [
+        {
+          path: 'role',
+          select: 'all',
+          populate: [
+            {
+              path: 'permissions',
+              select: 'all',
+            },
+          ],
+        },
+      ],
+    };
+
+    const user = await this.userRepository.findOne({
+      searchFilter: query,
+    });
 
     if (!user) {
       throw new UnauthorizedException();

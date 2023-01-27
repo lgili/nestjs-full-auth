@@ -41,7 +41,7 @@ const appConfig = config.get('app');
       useFactory: () => ({
         fallbackLanguage: appConfig.fallbackLanguage,
         parserOptions: {
-          path: path.join(__dirname, '../i18n/'),
+          path: path.join(__dirname, '/i18n/'),
           watch: true,
         },
       }),

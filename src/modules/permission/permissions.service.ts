@@ -161,7 +161,7 @@ export class PermissionsService extends LoadPermissionMisc {
     }
 
     const updatedPermission = await this.permissionRepository.update({
-      id: permission.id,
+      id: id,
       data: updatePermissionDto,
       cls: PermissionEntity,
     });
@@ -174,6 +174,7 @@ export class PermissionsService extends LoadPermissionMisc {
    * @param id
    */
   async remove(id: string): Promise<void> {
+    await this.findOne(id);
     await this.permissionRepository.delete(id);
   }
 

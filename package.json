@@ -29,11 +29,11 @@
     "start:migrate:dev": "prisma migrate dev && nest start --watch",
     "start:mongo:dev": "prisma db push && ts-node-dev -r tsconfig-paths/register --respawn --ignore-watch node_modules --no-notify src/index.ts",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test:watch": "jest --config ./test/unit/jest-unit.json --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.config.ts",
+    "test:e2e": "yarn prisma migrate deploy && NODE_ENV=test jest --config ./test/e2e/jest-e2e.json --runInBand --detectOpenHandles --watchAll --no-cache",
+    "test:unit": "NODE_ENV=test jest --config ./test/unit/jest-unit.json --runInBand",
     "prepare": "husky install",
     "doc": "npm run doc:serve",
     "doc:generate": "compodoc -p ./tsconfig.doc.json --theme readthedocs",
@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3.54.1",
+    "@faker-js/faker": "^7.6.0",
     "@nestjs-modules/mailer": "^1.8.1",
     "@nestjs/bull": "^0.6.2",
     "@nestjs/common": "^9.0.0",
@@ -62,8 +63,10 @@
     "config": "^3.3.7",
     "cookie-parser": "^1.4.6",
     "dd-trace": "2.4.1",
+    "dotenv": "^16.0.3",
     "helmet": "^5.1.1",
     "ioredis": "^5.0.5",
+    "jest-mock-extended": "^3.0.1",
     "jsonwebtoken": "^9.0.0",
     "nest-winston": "^1.6.2",
     "nestjs-i18n": "8.2.2",
@@ -134,5 +137,6 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
-  }
+  },
+  "packageManager": "yarn@3.3.1"
 }

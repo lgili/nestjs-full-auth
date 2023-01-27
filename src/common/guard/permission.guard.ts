@@ -23,6 +23,7 @@ export class PermissionGuard implements CanActivate {
       path,
       method,
     };
+
     const permitted = this.checkIfDefaultRoute(permissionPayload);
 
     if (permitted) {
