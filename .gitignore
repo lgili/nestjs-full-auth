@@ -11,6 +11,8 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .yarn/*
+.yarnrc.yml 
+.yarn-error.log
 # !.yarn/cache
 # !.yarn/patches
 # !.yarn/plugins
