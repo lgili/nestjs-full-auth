@@ -21,17 +21,17 @@ services:
   #############################################
   # Mongo: The database used by user-service
   #############################################
-  mongodb:
-    container_name: mongodb
-    build: ./mongodb-replica     
-    ports:         
-      - '27017:27017'
-    volumes:
-      - "mongodata:/data/db"     
-    networks:
-      - webnet 
-    env_file:
-      - .env
+  # mongodb:
+  #   container_name: mongodb
+  #   build: ./mongodb-replica     
+  #   ports:         
+  #     - '27017:27017'
+  #   volumes:
+  #     - "mongodata:/data/db"     
+  #   networks:
+  #     - webnet 
+  #   env_file:
+  #     - .env
   postgres:
     container_name: postgres
     image: postgres:12
@@ -40,14 +40,26 @@ services:
     networks:
       - webnet
     environment:
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_DB: ${DB_DATABASE_NAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASS}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_DB: ${DATABASE_NAME}
       PG_DATA: /var/lib/postgresql/data
     ports:
       - ${DB_PORT}:5432
     volumes:
       - pgdata:/var/lib/postgresql/data
+
+  mongodb:
+    # This image automatically creates a replica set required for transactions
+    image: prismagraphql/mongo-single-replica:4.4.3-bionic
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DATABASE_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${DATABASE_PASS}
+      INIT_WAIT_SEC: 3
+    networks:
+      - webnet   
+    ports:
+      - 27017:27017    
 
   redis:
     image: "redis:alpine"
