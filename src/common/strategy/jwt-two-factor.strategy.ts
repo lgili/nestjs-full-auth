@@ -3,11 +3,11 @@ import { PassportStrategy } from '@nestjs/passport';
 import * as config from 'config';
 import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { AuthService } from 'src/auth/auth.service';
+import { JwtPayloadDto } from 'src/auth/dto/jwt-payload.dto';
+import { UserEntity } from 'src/auth/entity/user.entity';
 import { StatusCodesList } from 'src/common/constants/status-codes-list.constants';
 import { CustomHttpException } from 'src/exception/custom-http.exception';
-import { AuthService } from 'src/modules/auth/auth.service';
-import { JwtPayloadDto } from 'src/modules/auth/dto/jwt-payload.dto';
-import { UserEntity } from 'src/modules/auth/entity/user.entity';
 
 @Injectable()
 export class JwtTwoFactorStrategy extends PassportStrategy(

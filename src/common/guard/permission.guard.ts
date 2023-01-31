@@ -1,10 +1,10 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Observable } from 'rxjs';
+import { UserEntity } from 'src/auth/entity/user.entity';
 import {
   PermissionConfiguration,
   RoutePayloadInterface,
 } from 'src/config/permission-config';
-import { UserEntity } from 'src/modules/auth/entity/user.entity';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {

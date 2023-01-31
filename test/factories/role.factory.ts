@@ -1,7 +1,7 @@
 // import { getRepository } from 'typeorm';
 // import { faker } from '@faker-js/faker';
 import { BaseRepository } from 'src/common/repository/base.repository';
-import { RoleEntity } from 'src/modules/role/entities/role.entity';
+import { RoleEntity } from 'src/role/entities/role.entity';
 
 import { prisma } from '../factories/ prisma-utils';
 

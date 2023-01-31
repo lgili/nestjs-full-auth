@@ -1,8 +1,8 @@
 import { PrismaClient, Prisma, prisma } from '@prisma/client'
 
-import { UserEntity } from 'src/modules/auth/entity/user.entity';
-import { UserStatusEnum } from 'src/modules/auth/user-status.enum';
-import { RoleEntity } from 'src/modules/role/entities/role.entity';
+import { UserEntity } from 'src/auth/entity/user.entity';
+import { UserStatusEnum } from 'src/auth/user-status.enum';
+import { RoleEntity } from 'src/role/entities/role.entity';
 
 export default class CreateUserSeed {
   public async run(): Promise<any> {

@@ -1,8 +1,8 @@
 import { PrismaClient, Prisma, prisma } from '@prisma/client'
 
-import { RoleEntity } from 'src/modules/role/entities/role.entity';
+import { RoleEntity } from 'src/role/entities/role.entity';
 import { PermissionConfiguration } from 'src/config/permission-config';
-import { PermissionEntity } from 'src/modules/permission/entities/permission.entity';
+import { PermissionEntity } from 'src/permission/entities/permission.entity';
 
 
 export default class CreateRoleSeed {

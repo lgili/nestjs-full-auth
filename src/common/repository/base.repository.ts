@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { ClassConstructor, plainToInstance } from 'class-transformer';
 import { NotFoundException } from 'src/exception/not-found.exception';
-import { Pagination } from 'src/modules/paginate';
+import { Pagination } from 'src/paginate';
 
 import { Querybuilder } from './query-buider-backend/queryBuilder';
 import {
