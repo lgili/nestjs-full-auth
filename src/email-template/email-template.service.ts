@@ -5,6 +5,7 @@ import { QueryPrisma } from 'src/common/repository/query-buider-frontend/interfa
 import { CreateEmailTemplateDto } from 'src/email-template/dto/create-email-template.dto';
 import { UpdateEmailTemplateDto } from 'src/email-template/dto/update-email-template.dto';
 import { ForbiddenException } from 'src/exception/forbidden.exception';
+import { NotFoundException } from 'src/exception/not-found.exception';
 
 import { Pagination } from '../paginate';
 import { EmailTemplateRepository } from './email-template.repository';
@@ -106,8 +107,11 @@ export class EmailTemplateService {
   ): Promise<EmailTemplateEntity> {
     const template = await this.emailTemplateRepository.findById({
       id,
-      cls: EmailTemplateEntity,
     });
+
+    if (!template) {
+      throw new NotFoundException();
+    }
 
     const hasTitle = await this.emailTemplateRepository.findBy({
       fieldName: 'title',
@@ -140,9 +144,7 @@ export class EmailTemplateService {
    * @param id
    */
   async remove(id: string): Promise<void> {
-    const template = await this.emailTemplateRepository.findById({
-      id,
-    });
+    const template = await this.findOne(id);
 
     if (template.isDefault) {
       throw new ForbiddenException(
