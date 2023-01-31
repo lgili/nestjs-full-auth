@@ -8,7 +8,7 @@ import { UpdateRoleDto } from 'src/role/dto/update-role.dto';
 
 import { Pagination } from '../paginate';
 import { GROUP_USER, RoleEntity } from './entities/role.entity';
-import { RoleRepository } from './role.repository';
+import { RoleRepository } from './roles.repository';
 
 @Injectable()
 export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ {
@@ -21,7 +21,7 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
    * Get Permission Id array
    * @param ids
    */
-  async getPermissionByIds(ids) {
+  async getPermissionByIds(ids: string[]) {
     if (ids && ids.length > 0) {
       return await this.permissionsService.whereInIds(ids);
     }
@@ -46,7 +46,8 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
    */
   async create(createRoleDto: CreateRoleDto): Promise<RoleEntity> {
     const { permissions } = createRoleDto;
-    const permission = await this.getPermissionByIds(permissions);
+    const ids = permissions.map(({ id }) => id);
+    const permission = await this.getPermissionByIds(ids);
     const role = new RoleEntity(createRoleDto);
     role.permissions = permission;
 
@@ -128,7 +129,8 @@ export class RolesService /*implements CommonServiceInterface<RoleSerializer>*/ 
       });
     }
     const { permissions } = updateRoleDto;
-    const permission = await this.getPermissionByIds(permissions);
+    const ids = permissions.map(({ id }) => id);
+    const permission = await this.getPermissionByIds(ids);
     const updateRole = new RoleEntity(updateRoleDto);
     updateRole.permissions = permission;
 
