@@ -23,11 +23,11 @@ import winstonConfig from 'src/config/winston';
 
 import { AuthModule } from './auth/auth.module';
 import { EmailTemplateModule } from './email-template/email-template.module';
-import { InfraModule } from './infra/infra.module';
 import { MailModule } from './mail/mail.module';
 import { PermissionsModule } from './permission/permissions.module';
 import { RefreshTokenModule } from './refresh-token/refresh-token.module';
 import { TwofaModule } from './twofa/twofa.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 const appConfig = config.get('app');
 
@@ -60,7 +60,7 @@ const appConfig = config.get('app');
       rootPath: join(__dirname, '..', 'public'),
       exclude: ['/api*'],
     }),
-    InfraModule,
+    PrismaModule,
     AuthModule,
     PermissionsModule,
     EmailTemplateModule,

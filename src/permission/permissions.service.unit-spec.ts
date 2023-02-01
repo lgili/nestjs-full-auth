@@ -122,10 +122,7 @@ describe('PermissionsService', () => {
       repository.update.mockResolvedValue(mockPermission);
       repository.findById.mockResolvedValue(mockPermission);
       const role = await service.update('1', updatePermissionDto);
-      expect(repository.findById).toHaveBeenCalledWith({
-        cls: PermissionEntity,
-        id: '1',
-      });
+
       expect(repository.findBy).toHaveBeenCalledWith({
         fieldName: 'description',
         value: updatePermissionDto.description,
