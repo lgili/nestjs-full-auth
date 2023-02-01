@@ -374,7 +374,11 @@ export class AuthService {
    * get user profile
    * @param user
    */
-  async get(user: UserEntity): Promise<UserEntity> {
+  async get(user: Partial<UserEntity>): Promise<UserEntity> {
+    if (!user.id) {
+      throw new NotFoundException();
+    }
+
     const query: QueryPrisma = {
       select: 'all',
       filter: [{ path: 'id', value: user.id }],
@@ -569,6 +573,7 @@ export class AuthService {
     if (!user) {
       return;
     }
+
     const token = await this.generateUniqueToken(6);
     user.token = token;
     const currentDateTime = new Date();
@@ -623,13 +628,14 @@ export class AuthService {
   ): Promise<void> {
     const { oldPassword, password } = changePasswordDto;
 
-    const hash = await bcrypt.hash(oldPassword, user.salt);
+    // const hash = await bcrypt.hash(oldPassword, user.salt);
 
-    let checkOldPwdMatches = false;
+    // let checkOldPwdMatches = false;
 
-    if (hash === user.password) {
-      checkOldPwdMatches = true;
-    }
+    // if (hash === user.password) {
+    //   checkOldPwdMatches = true;
+    // }
+    const checkOldPwdMatches = await user.validatePassword(oldPassword);
 
     if (!checkOldPwdMatches) {
       throw new CustomHttpException(
