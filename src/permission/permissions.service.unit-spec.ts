@@ -1,12 +1,7 @@
 import { UnprocessableEntityException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { plainToInstance, instanceToPlain } from 'class-transformer';
 import { QueryPrisma } from 'src/common/repository/query-buider-frontend/interfaces/Query';
-import {
-  MethodList,
-  PermissionConfiguration,
-  RoutePayloadInterface,
-} from 'src/config/permission-config';
+import { MethodList } from 'src/config/permission-config';
 import { NotFoundException } from 'src/exception/not-found.exception';
 import { CreatePermissionDto } from 'src/permission/dto/create-permission.dto';
 import { UpdatePermissionDto } from 'src/permission/dto/update-permission.dto';

@@ -141,11 +141,6 @@ export class PermissionsService extends LoadPermissionMisc {
     id: string,
     updatePermissionDto: UpdatePermissionDto,
   ): Promise<PermissionEntity> {
-    const permission = await this.permissionRepository.findById({
-      id,
-      cls: PermissionEntity,
-    });
-
     const sameName = this.permissionRepository.findBy({
       fieldName: 'description',
       value: updatePermissionDto.description,
