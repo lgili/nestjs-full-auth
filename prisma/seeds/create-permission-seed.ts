@@ -1,19 +1,17 @@
-import { PrismaClient, Prisma } from '@prisma/client'
-
-
+import { PrismaClient } from '@prisma/client';
 import {
   ModulesPayloadInterface,
   PermissionConfiguration,
   PermissionPayload,
   RoutePayloadInterface,
-  SubModulePayloadInterface
+  SubModulePayloadInterface,
 } from 'src/config/permission-config';
 
 export default class CreatePermissionSeed {
   permissions: RoutePayloadInterface[] = [];
 
   public async run(): Promise<any> {
-    const prisma = new PrismaClient()
+    const prisma = new PrismaClient();
     const modules = PermissionConfiguration.modules;
     for (const moduleData of modules) {
       let resource = moduleData.resource;
@@ -28,22 +26,21 @@ export default class CreatePermissionSeed {
     }
 
     if (this.permissions && this.permissions.length > 0) {
+      // console.log(this.permissions);
 
-        console.log(this.permissions)
-
-        this.permissions.forEach( async permission => {
-            const toSave = this.topersistense(permission)
-            await prisma.permission.create({
-                data: toSave
-            })
-        })
+      this.permissions.forEach(async (permission) => {
+        const toSave = this.topersistense(permission);
+        await prisma.permission.create({
+          data: toSave,
+        });
+      });
     }
   }
 
   assignResourceAndConcatPermission(
     modules: ModulesPayloadInterface | SubModulePayloadInterface,
     resource: string,
-    isDefault?: false
+    isDefault?: false,
   ) {
     if (modules.permissions) {
       for (const permission of modules.permissions) {
@@ -55,7 +52,7 @@ export default class CreatePermissionSeed {
   concatPermissions(
     permission: PermissionPayload,
     resource: string,
-    isDefault: boolean
+    isDefault: boolean,
   ) {
     const description = permission.name;
     for (const data of permission.route) {
@@ -66,13 +63,13 @@ export default class CreatePermissionSeed {
     this.permissions = this.permissions.concat(permission.route);
   }
 
-  topersistense(permission: RoutePayloadInterface){
+  topersistense(permission: RoutePayloadInterface) {
     return {
-        path: permission.path,
-        method: permission.method,
-        resource: permission.resource,
-        description: permission.description,
-        isDefault: permission.isDefault
-    }
+      path: permission.path,
+      method: permission.method,
+      resource: permission.resource,
+      description: permission.description,
+      isDefault: permission.isDefault,
+    };
   }
 }

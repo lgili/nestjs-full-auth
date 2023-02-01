@@ -19,7 +19,7 @@ export const GROUP_DEFAULT = 'timestamps';
  */
 export class UserEntity {
   @Expose({ groups: [GROUP_USER, GROUP_ADMIN] })
-  id: string;
+  id?: string;
 
   @Exclude()
   password: string;
@@ -72,19 +72,19 @@ export class UserEntity {
   @Exclude({
     toClassOnly: true,
   })
-  tokenValidityDate: Date;
+  tokenValidityDate?: Date;
 
   @ApiPropertyOptional()
   @Expose({
     groups: [GROUP_DEFAULT],
   })
-  created_at: Date;
+  created_at?: Date;
 
   @ApiPropertyOptional()
   @Expose({
     groups: [GROUP_DEFAULT],
   })
-  updated_at: Date;
+  updated_at?: Date;
 
   @Exclude({
     toPlainOnly: true,
@@ -99,17 +99,17 @@ export class UserEntity {
   @Exclude({
     toPlainOnly: true,
   })
-  twoFASecret: string | null;
+  twoFASecret?: string | null;
 
   @Exclude({
     toPlainOnly: true,
   })
-  twoFAThrottleTime: Date | null;
+  twoFAThrottleTime?: Date | null;
 
   @Exclude({
     toPlainOnly: true,
   })
-  skipHashPassword = false;
+  skipHashPassword? = false;
 
   constructor(data?: DeepPartial<UserEntity>) {
     if (data) {

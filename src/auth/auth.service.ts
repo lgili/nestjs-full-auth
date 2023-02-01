@@ -293,10 +293,17 @@ export class AuthService {
   ): Promise<[user: UserEntity, error: string, code: number]> {
     const { username, password } = userLoginDto;
 
-    const user = await this.userRepository.findBy({
+    let user = await this.userRepository.findBy({
       fieldName: 'username',
       value: username,
     });
+
+    if (!user) {
+      user = await this.userRepository.findBy({
+        fieldName: 'email',
+        value: username,
+      });
+    }
 
     if (user) {
       const hash = await bcrypt.hash(password, user.salt);

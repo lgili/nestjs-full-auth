@@ -5,7 +5,7 @@ import { PermissionEntity } from 'src/permission/entities/permission.entity';
 export const GROUP_USER = 'owner';
 
 export class RoleEntity {
-  id: string;
+  id?: string;
 
   @ApiProperty()
   name: string;
@@ -17,19 +17,19 @@ export class RoleEntity {
   description: string;
 
   @Type(() => PermissionEntity)
-  permissions: PermissionEntity[];
+  permissions?: PermissionEntity[];
 
   @ApiPropertyOptional()
   @Expose({
     groups: [GROUP_USER],
   })
-  createdAt: Date;
+  createdAt?: Date;
 
   @ApiPropertyOptional()
   @Expose({
     groups: [GROUP_USER],
   })
-  updatedAt: Date;
+  updatedAt?: Date;
 
   constructor(data?: Partial<RoleEntity>) {
     if (data) {

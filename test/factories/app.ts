@@ -1,13 +1,12 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { PrismaClient } from '@prisma/client';
 // import * as config from 'config';
 import Redis from 'ioredis';
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 import { RateLimiterRedis } from 'rate-limiter-flexible';
 import { AppModule } from 'src/app.module';
-
-import { clear } from './ prisma-utils';
 
 // const dbConfig = config.get('db');
 
@@ -15,6 +14,7 @@ export class AppFactory {
   private constructor(
     private readonly appInstance: INestApplication,
     private readonly redis: Redis,
+    private readonly prisma,
   ) {}
 
   get instance() {
@@ -59,7 +59,7 @@ export class AppFactory {
 
     await app.init();
 
-    return new AppFactory(app, redis);
+    return new AppFactory(app, redis, prisma);
   }
 
   async close() {
@@ -71,7 +71,13 @@ export class AppFactory {
   }
 
   static async cleanupDB() {
-    clear('');
+    const propertyNames = Object.getOwnPropertyNames(prisma);
+
+    const modelNames = propertyNames.filter(
+      (propertyName) => !propertyName.startsWith('_'),
+    );
+
+    return Promise.all(modelNames.map((model) => prisma[model].deleteMany()));
   }
 
   static async dropTables() {
@@ -115,3 +121,5 @@ const setupRedis = async () => {
 
   return redis;
 };
+
+export const prisma = new PrismaClient();

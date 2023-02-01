@@ -25,9 +25,9 @@ import { AuthModule } from './auth/auth.module';
 import { EmailTemplateModule } from './email-template/email-template.module';
 import { MailModule } from './mail/mail.module';
 import { PermissionsModule } from './permission/permissions.module';
+import { PrismaModule } from './prisma/prisma.module';
 import { RefreshTokenModule } from './refresh-token/refresh-token.module';
 import { TwofaModule } from './twofa/twofa.module';
-import { PrismaModule } from './prisma/prisma.module';
 
 const appConfig = config.get('app');
 
@@ -41,7 +41,7 @@ const appConfig = config.get('app');
       useFactory: () => ({
         fallbackLanguage: appConfig.fallbackLanguage,
         parserOptions: {
-          path: path.join(__dirname, '../i18n/'),
+          path: path.join(__dirname, '/i18n/'),
           watch: true,
         },
       }),

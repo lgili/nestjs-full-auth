@@ -1,9 +1,9 @@
 import { HttpStatus } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppFactory } from 'test/factories/app';
-// import { RoleFactory } from 'test/factories/role.factory';
-// import { UserFactory } from 'test/factories/user.factory';
-// import { extractCookies } from 'test/utility/extract-cookie';
+import { RoleFactory } from 'test/factories/role.factory';
+import { UserFactory } from 'test/factories/user.factory';
+import { extractCookies } from 'test/utility/extract-cookie';
 
 describe('AuthController (e2e)', () => {
   let app: AppFactory;
@@ -30,41 +30,66 @@ describe('AuthController (e2e)', () => {
       .expect(HttpStatus.UNPROCESSABLE_ENTITY);
   });
 
-  // it('POST /auth/login should throw unauthorized error if wrong username and password provided', async () => {
-  //   await request(app.instance.getHttpServer())
-  //     .post(`/auth/login`)
-  //     .send({
-  //       username: 'john@example.com',
-  //       password: 'wrongPassword',
-  //       remember: true,
-  //     })
-  //     .expect(HttpStatus.UNAUTHORIZED);
-  // });
+  it('POST /auth/login should throw unauthorized error if wrong username and password provided', async () => {
+    await request(app.instance.getHttpServer())
+      .post(`/auth/login`)
+      .send({
+        username: 'john@example.com',
+        password: 'wrongPassword',
+        remember: true,
+      })
+      .expect(HttpStatus.UNAUTHORIZED);
+  });
 
-  // it('POST /auth/login should login if provided with valid username and password', async () => {
-  //   let cookie;
-  //   const role = await RoleFactory.new().create();
+  it('POST /auth/login should login if provided with valid username and password', async () => {
+    let cookie;
+    const role = await RoleFactory.new().save();
 
-  //   const user = await UserFactory.new()
-  //     .withRole(role)
-  //     .create({ password: 'password' });
+    const user = await UserFactory.new()
+      .withRole(role)
+      .save({ password: 'password' });
 
-  //   await request(app.instance.getHttpServer())
-  //     .post(`/auth/login`)
-  //     .send({
-  //       username: user.email,
-  //       password: 'password',
-  //       remember: true,
-  //     })
-  //     .expect(HttpStatus.NO_CONTENT)
-  //     .then((res) => {
-  //       cookie = extractCookies(res.headers);
-  //     });
-  //   expect(cookie).toBeDefined();
-  //   expect(cookie).toHaveProperty('Authentication');
-  //   expect(cookie).toHaveProperty('Refresh');
-  //   expect(cookie).toHaveProperty('ExpiresIn');
-  // });
+    await request(app.instance.getHttpServer())
+      .post(`/auth/login`)
+      .send({
+        username: user.username,
+        password: 'password',
+        remember: true,
+      })
+      .expect(HttpStatus.NO_CONTENT)
+      .then((res) => {
+        cookie = extractCookies(res.headers);
+      });
+    expect(cookie).toBeDefined();
+    expect(cookie).toHaveProperty('Authentication');
+    expect(cookie).toHaveProperty('Refresh');
+    expect(cookie).toHaveProperty('ExpiresIn');
+  });
+
+  it('POST /auth/login should login if provided with valid email and password', async () => {
+    let cookie;
+    const role = await RoleFactory.new().save();
+
+    const user = await UserFactory.new()
+      .withRole(role)
+      .save({ password: 'password' });
+
+    await request(app.instance.getHttpServer())
+      .post(`/auth/login`)
+      .send({
+        username: user.email,
+        password: 'password',
+        remember: true,
+      })
+      .expect(HttpStatus.NO_CONTENT)
+      .then((res) => {
+        cookie = extractCookies(res.headers);
+      });
+    expect(cookie).toBeDefined();
+    expect(cookie).toHaveProperty('Authentication');
+    expect(cookie).toHaveProperty('Refresh');
+    expect(cookie).toHaveProperty('ExpiresIn');
+  });
 
   afterAll(async () => {
     await app.close();
