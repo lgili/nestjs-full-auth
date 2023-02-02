@@ -1,8 +1,14 @@
 version: '3'
 services:
-   mongodb:
+  mongodb:
     # This image automatically creates a replica set required for transactions
     image: prismagraphql/mongo-single-replica:4.4.3-bionic
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo mongodb:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: zRIlAcTn0SU1wO1jB3wd
@@ -11,7 +17,25 @@ services:
       - webnet   
     ports:
       - 27017:27017    
-    redis:
-      image: redis
-      ports:
-        - '6379:6379'
+
+  redis:
+    image: "redis:alpine"
+    container_name: redis
+    restart: always
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+    volumes:
+      - .:/data
+    networks:
+      - webnet  
+    ports:
+      - 6379:6379
+
+
+
+networks:
+  webnet:
+    driver: bridge
+volumes:
+  pgdata:
+  mongodata:        

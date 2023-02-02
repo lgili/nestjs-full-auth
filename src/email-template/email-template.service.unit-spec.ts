@@ -1,11 +1,11 @@
 import { UnprocessableEntityException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { EmailTemplateEntity } from 'dist/src/email-template/entities/email-template.entity';
 import { QueryPrisma } from 'src/common/repository/query-buider-frontend/interfaces/Query';
 import { CreateEmailTemplateDto } from 'src/email-template/dto/create-email-template.dto';
 import { UpdateEmailTemplateDto } from 'src/email-template/dto/update-email-template.dto';
 import { EmailTemplateRepository } from 'src/email-template/email-template.repository';
 import { EmailTemplateService } from 'src/email-template/email-template.service';
+import { EmailTemplateEntity } from 'src/email-template/entities/email-template.entity';
 import { ForbiddenException } from 'src/exception/forbidden.exception';
 import { NotFoundException } from 'src/exception/not-found.exception';
 
